@@ -1,0 +1,16 @@
+Library/
+Temp/
+Logs/
+obj/
+Build/
+Builds/
+UserSettings/
+ProfilerCaptures/
+*.csproj
+*.sln
+*.suo
+*.tmp
+*.user
+*.userprefs
+.DS_Store
+thumbs.db
