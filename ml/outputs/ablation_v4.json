@@ -1,0 +1,90 @@
+{
+ "Full design": {
+  "rmse": 0.026803400134570665,
+  "r2": 0.9946827049379808,
+  "rmse_operational": 0.02529718157640174,
+  "zone_accuracy": 0.9894,
+  "score_at_optimum": 0.9823992266952442,
+  "stage_effect_captured": 1.3289478637300667,
+  "outcome_agreement": 0.97,
+  "maturity_day_mae": 2.115740740740741,
+  "maturity_day_bias": 1.8842592592592593
+ },
+ "Full design (no isotonic)": {
+  "rmse": 0.026947909537663486,
+  "r2": 0.9946252144310002,
+  "rmse_operational": 0.025338937134820067,
+  "zone_accuracy": 0.9894,
+  "score_at_optimum": 0.9948799533328179,
+  "stage_effect_captured": 1.3433689837647511,
+  "outcome_agreement": 0.96,
+  "maturity_day_mae": 2.481132075471698,
+  "maturity_day_bias": 2.349056603773585
+ },
+ "No core": {
+  "rmse": 0.0278973922248859,
+  "r2": 0.9942397915783319,
+  "rmse_operational": 0.02608842523010605,
+  "zone_accuracy": 0.9908,
+  "score_at_optimum": 0.9568731156356056,
+  "stage_effect_captured": 0.5961815692457171,
+  "outcome_agreement": 0.96,
+  "maturity_day_mae": 2.042654028436019,
+  "maturity_day_bias": 1.8625592417061612
+ },
+ "No moderate": {
+  "rmse": 0.029059816880849125,
+  "r2": 0.9937497595178666,
+  "rmse_operational": 0.030885336854252675,
+  "zone_accuracy": 0.9896,
+  "score_at_optimum": 0.9869202063779868,
+  "stage_effect_captured": 0.8399437014003708,
+  "outcome_agreement": 0.94,
+  "maturity_day_mae": 4.681372549019608,
+  "maturity_day_bias": 4.622549019607843
+ },
+ "Uniform only": {
+  "rmse": 0.022698846359928648,
+  "r2": 0.9961865456541492,
+  "rmse_operational": 0.022060318760533444,
+  "zone_accuracy": 0.9932,
+  "score_at_optimum": 0.9312235446833272,
+  "stage_effect_captured": 1.1367638197511125,
+  "outcome_agreement": 0.9825,
+  "maturity_day_mae": 1.4864864864864864,
+  "maturity_day_bias": 0.5495495495495496
+ },
+ "Uniform + core": {
+  "rmse": 0.026848259814410122,
+  "r2": 0.9946648913946752,
+  "rmse_operational": 0.026462703101680335,
+  "zone_accuracy": 0.9882,
+  "score_at_optimum": 0.9765564817519731,
+  "stage_effect_captured": 0.972010149611226,
+  "outcome_agreement": 0.9525,
+  "maturity_day_mae": 3.7403846153846154,
+  "maturity_day_bias": 3.5961538461538463
+ },
+ "Uniform + twin states": {
+  "rmse": 0.028668218464771408,
+  "r2": 0.9939170759845714,
+  "rmse_operational": 0.020784502536104255,
+  "zone_accuracy": 0.9872,
+  "score_at_optimum": 0.959605242070362,
+  "stage_effect_captured": 0.8686719043049478,
+  "outcome_agreement": 0.9825,
+  "maturity_day_mae": 0.7321428571428571,
+  "maturity_day_bias": -0.09821428571428571
+ },
+ "Uniform + twin states + core": {
+  "rmse": 0.030683700549454847,
+  "r2": 0.9930317062164161,
+  "rmse_operational": 0.02163915081833518,
+  "zone_accuracy": 0.9884,
+  "score_at_optimum": 0.9986297827107841,
+  "stage_effect_captured": 0.9545633025483387,
+  "outcome_agreement": 0.99,
+  "maturity_day_mae": 0.915929203539823,
+  "maturity_day_bias": 0.004424778761061947
+ }
+}
