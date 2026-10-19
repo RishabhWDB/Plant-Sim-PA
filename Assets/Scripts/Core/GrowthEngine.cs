@@ -3,7 +3,7 @@ using UnityEngine;
 /// <summary>
 /// Runs once per simulated day:
 ///   1. Soil water balance: rain and irrigation add water, crop evapotranspiration removes it,
-///      water above field capacity drains (same equations as twin_core.py).
+///      water above field capacity drains (same equations as ml/twin_core.py).
 ///   2. Growth score from the trained surrogate (GrowthModel), or the analytic response
 ///      function if no model file is assigned.
 ///   3. Every plant updates its progress; the twin computes a forecast with a 90% band.
@@ -13,8 +13,8 @@ public class GrowthEngine : MonoBehaviour
     [Header("References")]
     public SimulationClock clock;
     public FarmGrid        farmGrid;
-    public SlidersPanel    slidersPanel;           // optional: shows soil moisture as it changes
-    [Tooltip("Assets/MLModels/growth_model.json from train_model.py")]
+    public SlidersPanel    slidersPanel;           // found automatically if left empty
+    [Tooltip("Assets/MLModels/growth_model.json from ml/train_model.py")]
     public TextAsset       modelJson;
 
     [Header("Environment (set by the sliders)")]
@@ -26,21 +26,26 @@ public class GrowthEngine : MonoBehaviour
     [Range(0f, 120f)]   public float rainfall      = 3f;    // mm/day
     [Range(0f, 60f)]    public float irrigation    = 0f;    // mm/day, applied every day while set
 
-    [Header("Read only")]
-    public float currentScore     = 0f;
-    public float growthRatePerDay = 0f;    // % progress per day
-    public int   currentStage     = 0;
-    public float averageProgress  = 0f;    // 0 to 1
-    public float evapotranspiration = 0f;  // ETc, mm/day
-    public float forecastDays     = 0f;    // days to maturity, or to death if forecastIsDeath
-    public float forecastLow      = 0f;    // 90% band from the conformal interval
-    public float forecastHigh     = 0f;
-    public bool  forecastIsDeath  = false;
-    public bool  usingLearnedModel = false;
+    [Header("Read Only")]
+    public float currentScore       = 0f;
+    public float growthRatePerDay   = 0f;    // % progress per day
+    public int   currentStage       = 0;
+    public float averageProgress    = 0f;    // 0 to 1
+    public float evapotranspiration = 0f;    // ETc, mm/day
+    public float forecastDays       = 0f;    // days to maturity, or to death if forecastIsDeath
+    public float forecastLow        = 0f;    // 90% band from the conformal interval
+    public float forecastHigh       = 0f;    // infinity if the band reaches the other outcome
+    public bool  forecastIsDeath    = false;
+    public bool  usingLearnedModel  = false;
+    public float modelLoadMs        = 0f;    // time to parse growth_model.json
+
+    public static readonly string[] StageNames =
+        { "Seed", "Germination", "Sprout", "Seedling", "Vegetative", "Flowering", "Mature" };
 
     // Water balance (FAO-56 inspired), identical to twin_core.py
+    public const float MATURE_AT = 0.98f;
     const float FC = 70f, WP = 5f, P_DEPLETION = 0.40f;
-    const float MM_PER_PCT = 1.35f, DRAIN_RATE = 0.5f, RA = 35f, N_DAYLIGHT = 12f, MATURE_AT = 0.98f;
+    const float MM_PER_PCT = 1.35f, DRAIN_RATE = 0.5f, RA = 35f, N_DAYLIGHT = 12f;
     static readonly float SM_P = FC - P_DEPLETION * (FC - WP);
     static readonly float[] KC = { 0.60f, 0.60f, 0.75f, 0.90f, 1.15f, 1.15f, 0.80f };
 
@@ -56,7 +61,8 @@ public class GrowthEngine : MonoBehaviour
     static readonly float[] SIGMA = { 1.0f, 0.9f, 0.8f, 0.7f, 0.6f, 0.5f, 0.4f };
 
     private GrowthModel model;
-    private Plant[] allPlants;
+    private Plant[]     allPlants;
+    private float       initialSoilMoisture = 55f;
 
     void Awake()
     {
@@ -64,9 +70,11 @@ public class GrowthEngine : MonoBehaviour
         {
             try
             {
+                var timer = System.Diagnostics.Stopwatch.StartNew();
                 model = GrowthModel.Load(modelJson.text);
+                modelLoadMs = (float)timer.Elapsed.TotalMilliseconds;
                 usingLearnedModel = true;
-                Debug.Log($"GrowthEngine: loaded learned model ({model.TreeCount} trees).");
+                Debug.Log($"GrowthEngine: loaded learned model ({model.TreeCount} trees) in {modelLoadMs:F1} ms.");
             }
             catch (System.Exception e)
             {
@@ -81,11 +89,17 @@ public class GrowthEngine : MonoBehaviour
 
     void Start()
     {
+        if (slidersPanel == null)
+            slidersPanel = FindFirstObjectByType<SlidersPanel>();
+
+        // SlidersPanel pushes its values in Awake, so this is the starting soil moisture
+        initialSoilMoisture = soilMoisture;
         clock.OnDayPassed += OnDayPassed;
     }
 
     void Update()
     {
+        // Wait until plants are spawned before grabbing the array
         if (allPlants == null || allPlants.Length == 0)
             allPlants = farmGrid.GetAllPlants();
     }
@@ -114,29 +128,58 @@ public class GrowthEngine : MonoBehaviour
             sum += plant.growthProgress; n++;
         }
         averageProgress = n > 0 ? sum / n : 0f;
-        currentStage = Mathf.Clamp(Mathf.FloorToInt(averageProgress * 7f), 0, 6);
+        currentStage    = Mathf.Clamp(Mathf.FloorToInt(averageProgress * 7f), 0, 6);
 
         // 4. Forecast if today's conditions persist, with the conformal band
-        float q = usingLearnedModel ? model.ConformalQ90 : 0f;
-        forecastDays    = Forecast(averageProgress, currentScore, out forecastIsDeath);
-        forecastLow     = Forecast(averageProgress, Mathf.Clamp01(currentScore + q), out _);
-        forecastHigh    = Forecast(averageProgress, Mathf.Clamp01(currentScore - q), out _);
+        UpdateForecast();
     }
 
-    // ------------------------------------------------------------------ model
+    void UpdateForecast()
+    {
+        float q = usingLearnedModel ? model.ConformalQ90 : 0f;
+        forecastDays = Forecast(averageProgress, currentScore, out forecastIsDeath);
+
+        // A higher score means earlier maturity or later death, so the band ends swap with the outcome.
+        // If one end of the band crosses to the other outcome, that end is unbounded.
+        float optimistic  = Forecast(averageProgress, Mathf.Clamp01(currentScore + q), out bool optimisticDeath);
+        float pessimistic = Forecast(averageProgress, Mathf.Clamp01(currentScore - q), out bool pessimisticDeath);
+        if (forecastIsDeath)
+        {
+            forecastLow  = pessimistic;
+            forecastHigh = optimisticDeath ? optimistic : float.PositiveInfinity;
+        }
+        else
+        {
+            forecastLow  = optimistic;
+            forecastHigh = pessimisticDeath ? float.PositiveInfinity : pessimistic;
+        }
+    }
+
+    /// <summary>Called when the simulation is reset: restores the starting soil moisture and
+    /// clears the daily outputs.</summary>
+    public void ResetState()
+    {
+        soilMoisture       = initialSoilMoisture;
+        currentScore       = 0f;
+        growthRatePerDay   = 0f;
+        currentStage       = 0;
+        averageProgress    = 0f;
+        evapotranspiration = 0f;
+        forecastDays       = 0f;
+        forecastLow        = 0f;
+        forecastHigh       = 0f;
+        forecastIsDeath    = false;
+
+        if (slidersPanel != null) slidersPanel.ShowSoilMoisture(soilMoisture);
+    }
+
+    // Model
 
     public float PredictScore(float ph, float moisture, float sunlight, float temp, float rh, int stage)
     {
         if (usingLearnedModel)
             return model.Predict(ph, moisture, sunlight, temp, rh, stage);
         return AnalyticScore(ph, moisture, sunlight, temp, rh, stage);
-    }
-
-    /// <summary>Kept for SimulationServer and older scripts. Rainfall now acts through soil moisture.</summary>
-    public float PlaceholderModel(float ph, float moisture, float sunlight, float temp,
-                                  float rh, float rain, int stage)
-    {
-        return PredictScore(ph, moisture, sunlight, temp, rh, stage);
     }
 
     public static float AnalyticScore(float ph, float moisture, float sunlight, float temp, float rh, int stage)
@@ -171,12 +214,12 @@ public class GrowthEngine : MonoBehaviour
         return 0.85f * (1f - Mathf.Pow(Mathf.Clamp01(d), 1.8f));
     }
 
-    // ------------------------------------------------------------------ water balance
+    // Water balance
 
     public static float Et0Turc(float temp, float rh, float sunlight)
     {
-        float t  = Mathf.Max(temp, 0.1f);
-        float rs = (0.25f + 0.5f * Mathf.Min(sunlight, N_DAYLIGHT) / N_DAYLIGHT) * RA;
+        float t   = Mathf.Max(temp, 0.1f);
+        float rs  = (0.25f + 0.5f * Mathf.Min(sunlight, N_DAYLIGHT) / N_DAYLIGHT) * RA;
         float cRh = rh < 50f ? 1f + (50f - rh) / 70f : 1f;
         return 0.013f * t / (t + 15f) * (23.8856f * rs + 50f) * cRh;
     }
@@ -193,7 +236,7 @@ public class GrowthEngine : MonoBehaviour
         return w / MM_PER_PCT;
     }
 
-    // ------------------------------------------------------------------ dynamics
+    // Crop dynamics
 
     public static float Delta(float s)
     {
@@ -204,8 +247,8 @@ public class GrowthEngine : MonoBehaviour
     {
         float d = Delta(score);
         death = d < 0f;
-        if (d > 0f)  return (MATURE_AT - progress) / d;
-        if (d < 0f)  return progress / -d;
+        if (d > 0f) return (MATURE_AT - progress) / d;
+        if (d < 0f) return progress / -d;
         return float.PositiveInfinity;
     }
 

@@ -28,18 +28,10 @@ public class SlidersPanel : MonoBehaviour
     public TextMeshProUGUI humidityLabel;
     public TextMeshProUGUI rainfallLabel;
 
-    private bool initialised = false;
-
+    // Awake, so GrowthEngine.Start sees the slider values as the starting state
     void Awake()
     {
-        Initialise();
-    }
-
-    void Initialise()
-    {
-        if (initialised) return;
-        initialised = true;
-
+        // Set slider ranges
         pHSlider.minValue          = 3.5f;  pHSlider.maxValue          = 9.5f;
         moistureSlider.minValue    = 5f;    moistureSlider.maxValue    = 100f;
         sunlightSlider.minValue    = 0f;    sunlightSlider.maxValue    = 16f;
@@ -47,6 +39,7 @@ public class SlidersPanel : MonoBehaviour
         humiditySlider.minValue    = 10f;   humiditySlider.maxValue    = 100f;
         rainfallSlider.minValue    = 0f;    rainfallSlider.maxValue    = 120f;
 
+        // Set default values matching GrowthEngine defaults
         pHSlider.value          = 6.5f;
         moistureSlider.value    = 55f;
         sunlightSlider.value    = 8f;
@@ -54,6 +47,7 @@ public class SlidersPanel : MonoBehaviour
         humiditySlider.value    = 62f;
         rainfallSlider.value    = 3f;
 
+        // Hook up listeners
         pHSlider.onValueChanged.AddListener(v          => OnSliderChanged());
         moistureSlider.onValueChanged.AddListener(v    => OnSliderChanged());
         sunlightSlider.onValueChanged.AddListener(v    => OnSliderChanged());
@@ -62,26 +56,6 @@ public class SlidersPanel : MonoBehaviour
         rainfallSlider.onValueChanged.AddListener(v    => OnSliderChanged());
 
         OnSliderChanged();
-    }
-
-    /// <summary>Sets a parameter by its API name (used by SimulationServer).</summary>
-    public bool SetParameter(string name, float value)
-    {
-        Initialise();
-        Slider s = name switch
-        {
-            "ph"             => pHSlider,
-            "soil_moisture"  => moistureSlider,
-            "sunlight_hours" => sunlightSlider,
-            "temperature"    => temperatureSlider,
-            "humidity"       => humiditySlider,
-            "rainfall"       => rainfallSlider,
-            _                => null
-        };
-        if (s == null) return false;
-        s.value = value;
-        OnSliderChanged();
-        return true;
     }
 
     /// <summary>Called by GrowthEngine after the daily water balance; moves the slider without
@@ -94,12 +68,14 @@ public class SlidersPanel : MonoBehaviour
 
     void OnSliderChanged()
     {
+        // Push values to GrowthEngine
         growthEngine.pH            = pHSlider.value;
         growthEngine.soilMoisture  = moistureSlider.value;   // dragging = irrigate or drain to this level
         growthEngine.sunlightHours = sunlightSlider.value;
         growthEngine.temperature   = temperatureSlider.value;
         growthEngine.humidity      = humiditySlider.value;
         growthEngine.rainfall      = rainfallSlider.value;
+
         UpdateLabels();
     }
 
