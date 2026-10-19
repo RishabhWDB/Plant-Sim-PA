@@ -1,7 +1,7 @@
 % =============================================================================
 %  Predictive analytics for a hybrid plant-growth digital twin (IEEE conference format)
 %
-%  Every number in black is produced by the code in twin_v4/:
+%  Every number in black is produced by the code in ml/ (outputs in ml/outputs/):
 %    train_model.py    model comparison, tuning, calibration, conformal, export
 %    ablation.py       training-data design ablation
 %    evaluate_twin.py  case study and forecasting benchmark
@@ -360,7 +360,7 @@ $\pm 20\%$ of the band centres. It is split into 16{,}320 training, 2{,}448 isot
 
 Every model is assessed in three ways. \emph{Pointwise}: five-fold cross-validated RMSE on the
 training split and $R^2$, RMSE and zone accuracy (correctly predicting $s \ge 0.5$) on the test
-split. \emph{Probes}: the score at the optimum, where $f = 0.999$, and the fraction of the true
+split. \emph{Probes}: the score at the optimum, where $f = 1$, and the fraction of the true
 stage effect captured under mild stress. \emph{Trajectory-level}: the twin is run with the model
 in place of $f$ on 400 held-out rainfed seasons, and compared with the true twin on outcome
 agreement (matured, died or immature), maturity-day error and stress-day error.
@@ -388,7 +388,7 @@ Model & CV RMSE & Test $R^2$ & Test RMSE & Zone acc. & $\hat s$ at opt. & Stage 
 Outcome agr. & Day MAE & Day bias \\
 \midrule
 Linear regression & 0.328 & 0.038 & 0.332 & 70.4\% & 0.548 & 88\% & 40.5\% & -- & -- \\
-Random forest & 0.047 & 0.985 & 0.041 & 98.1\% & 0.990 & 87\% & 96.5\% & 3.2 & +0.4 \\
+Random forest & 0.047 & 0.985 & 0.041 & 98.1\% & 0.990 & 87\% & 96.2\% & 3.2 & +0.4 \\
 Gradient boosting & 0.066 & 0.986 & 0.041 & 98.7\% & 0.982 & 101\% & 97.5\% & 2.5 & +0.2 \\
 HistGB & 0.044 & 0.988 & 0.036 & 98.6\% & 0.982 & 102\% & 98.2\% & 1.9 & +1.0 \\
 HistGB + deviations & 0.044 & 0.989 & 0.036 & 98.6\% & 0.981 & 96\% & 98.5\% & 1.7 & +0.8 \\
@@ -755,9 +755,9 @@ reverses at 1.0--1.4\% per day and the field regresses from seedling to sprout o
 
 \textbf{Recovery.} Rain on day 45 restores the soil and the score; the rainfed field
 matures on day 85, 33 days after the optimal field. The warning-triggered policy
-irrigates 35\,mm on day 36 when the score first falls below 0.6, keeps the crop above
-the stress level throughout, and matures on day 77, 8 days earlier than
-rainfed and with no stress days.
+irrigates 35\,mm on day 36, the day after the score first falls below 0.6, which lifts soil
+moisture from 14.1\% back to 39.0\% before it reaches the critical level. It keeps the score
+above 0.5 throughout and matures on day 77, 8 days earlier than rainfed and with no stress days.
 
 % =============================================================================
 \section{Forecasting Time to Maturity (RQ3)}\label{sec:forecast}
