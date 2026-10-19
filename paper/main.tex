@@ -6,7 +6,7 @@
 %    ablation.py       training-data design ablation
 %    evaluate_twin.py  case study and forecasting benchmark
 %  Values wrapped in \ph{...} (RED) are Unity measurements still to be taken on your machine
-%  (frame rates, model load time, screenshots). Replace them, then change \ph to
+%  (frame rates, model load time). Replace them, then change \ph to
 %  \newcommand{\ph}[1]{#1} and delete the red DRAFT box.
 % =============================================================================
 \documentclass[conference]{IEEEtran}
@@ -67,7 +67,7 @@ rishabharya.k@gmail.com}
 
 \noindent\fcolorbox{red}{red!5}{\parbox{0.95\columnwidth}{\footnotesize\color{red}
 \textbf{DRAFT.} Values in red are Unity measurements still to be taken (frame rate, model load
-time, screenshots). All other values are computed by the accompanying code.}}
+time). All other values are computed by the accompanying code.}}
 \vspace{2pt}
 
 \begin{abstract}
@@ -583,14 +583,14 @@ $50 \times 50$ & 2{,}500 & \ph{3}  & $\approx$1{,}500 (peak) \\
 
 \begin{figure}[t]
 \centering
-\fcolorbox{red}{red!3}{\parbox[c][2.2cm][c]{0.44\columnwidth}{\centering\footnotesize\color{red}
-(a) Screenshot: day 25\\(seedling, growing)}}\hfill
-\fcolorbox{red}{red!3}{\parbox[c][2.2cm][c]{0.44\columnwidth}{\centering\footnotesize\color{red}
-(b) Screenshot: day 35\\(seedling, drying)}}\\[4pt]
-\fcolorbox{red}{red!3}{\parbox[c][2.2cm][c]{0.44\columnwidth}{\centering\footnotesize\color{red}
-(c) Screenshot: day 45\\(vegetative, critical)}}\hfill
-\fcolorbox{red}{red!3}{\parbox[c][2.2cm][c]{0.44\columnwidth}{\centering\footnotesize\color{red}
-(d) Screenshot: day 49\\(regressed to seedling)}}
+\begin{tabular}{@{}c@{\hspace{3pt}}c@{}}
+\includegraphics[width=0.49\columnwidth]{figures/twin_day25.png} &
+\includegraphics[width=0.49\columnwidth]{figures/twin_day35.png} \\[-1pt]
+\scriptsize (a) Day 25 & \scriptsize (b) Day 35 \\[2pt]
+\includegraphics[width=0.49\columnwidth]{figures/twin_day45.png} &
+\includegraphics[width=0.49\columnwidth]{figures/twin_day49.png} \\[-1pt]
+\scriptsize (c) Day 45 & \scriptsize (d) Day 49
+\end{tabular}
 \caption{The Unity twin running the learned model on a $12 \times 12$ field: default conditions
 until day 25, then a dry spell (no rain, 35\,\textdegree C, 38\% humidity, 10\,h of sunshine)
 without irrigation. (a) Day 25: seedling stage, $\theta = 56.2\%$, $\hat s = 0.990$, maturity
@@ -598,7 +598,7 @@ forecast 26 days (90\%: 25--28). (b) Day 35: $\theta = 21.8\%$, $ET_c = 2.83$\,m
 $\hat s = 0.667$, maturity forecast 61 days (90\%: 49--84). (c) Day 45: $\theta = 8.8\%$, below
 the critical level; $\hat s = 0.089$ and the twin forecasts crop death in 47 days. (d) Day 49:
 $\theta = 7.3\%$, $\hat s = 0.030$; the field has regressed to the seedling stage and death is
-forecast in 37 days. \ph{[Insert screenshots.]}}
+forecast in 37 days.}
 \label{fig:shots}
 \end{figure}
 
