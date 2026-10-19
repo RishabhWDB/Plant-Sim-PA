@@ -583,11 +583,22 @@ $50 \times 50$ & 2{,}500 & \ph{3}  & $\approx$1{,}500 (peak) \\
 
 \begin{figure}[t]
 \centering
-\fcolorbox{red}{red!3}{\parbox[c][2.5cm][c]{0.44\columnwidth}{\centering\footnotesize\color{red}
-Screenshot: rainfed field\\on day 40 (green, stage 3)}}\hfill
-\fcolorbox{red}{red!3}{\parbox[c][2.5cm][c]{0.44\columnwidth}{\centering\footnotesize\color{red}
-Screenshot: rainfed field\\on day 44 (browning, stage 2)}}
-\caption{The Unity twin during the case study of Section~\ref{sec:case}. \ph{[Replace with screenshots.]}}
+\fcolorbox{red}{red!3}{\parbox[c][2.2cm][c]{0.44\columnwidth}{\centering\footnotesize\color{red}
+(a) Screenshot: day 25\\(seedling, growing)}}\hfill
+\fcolorbox{red}{red!3}{\parbox[c][2.2cm][c]{0.44\columnwidth}{\centering\footnotesize\color{red}
+(b) Screenshot: day 35\\(seedling, drying)}}\\[4pt]
+\fcolorbox{red}{red!3}{\parbox[c][2.2cm][c]{0.44\columnwidth}{\centering\footnotesize\color{red}
+(c) Screenshot: day 45\\(vegetative, critical)}}\hfill
+\fcolorbox{red}{red!3}{\parbox[c][2.2cm][c]{0.44\columnwidth}{\centering\footnotesize\color{red}
+(d) Screenshot: day 49\\(regressed to seedling)}}
+\caption{The Unity twin running the learned model on a $12 \times 12$ field: default conditions
+until day 25, then a dry spell (no rain, 35\,\textdegree C, 38\% humidity, 10\,h of sunshine)
+without irrigation. (a) Day 25: seedling stage, $\theta = 56.2\%$, $\hat s = 0.990$, maturity
+forecast 26 days (90\%: 25--28). (b) Day 35: $\theta = 21.8\%$, $ET_c = 2.83$\,mm/day,
+$\hat s = 0.667$, maturity forecast 61 days (90\%: 49--84). (c) Day 45: $\theta = 8.8\%$, below
+the critical level; $\hat s = 0.089$ and the twin forecasts crop death in 47 days. (d) Day 49:
+$\theta = 7.3\%$, $\hat s = 0.030$; the field has regressed to the seedling stage and death is
+forecast in 37 days. \ph{[Insert screenshots.]}}
 \label{fig:shots}
 \end{figure}
 
