@@ -1,132 +1,255 @@
 using UnityEngine;
 
+/// <summary>
+/// Runs once per simulated day:
+///   1. Soil water balance: rain and irrigation add water, crop evapotranspiration removes it,
+///      water above field capacity drains (same equations as ml/twin_core.py).
+///   2. Growth score from the trained surrogate (GrowthModel), or the analytic response
+///      function if no model file is assigned.
+///   3. Every plant updates its progress; the twin computes a forecast with a 90% band.
+/// </summary>
 public class GrowthEngine : MonoBehaviour
 {
     [Header("References")]
     public SimulationClock clock;
     public FarmGrid        farmGrid;
+    public SlidersPanel    slidersPanel;           // found automatically if left empty
+    [Tooltip("Assets/MLModels/growth_model.json from ml/train_model.py")]
+    public TextAsset       modelJson;
 
-    [Header("Environment Inputs")]
-    [Range(3.5f, 9.5f)]  public float pH             = 6.5f;
-    [Range(5f, 100f)]    public float soilMoisture   = 55f;
-    [Range(0f, 16f)]     public float sunlightHours  = 8f;
-    [Range(0f, 45f)]     public float temperature    = 25f;
-    [Range(10f, 100f)]   public float humidity       = 62f;
-    [Range(0f, 120f)]    public float rainfall       = 40f;
+    [Header("Environment (set by the sliders)")]
+    [Range(3.5f, 9.5f)] public float pH            = 6.5f;
+    [Range(5f, 100f)]   public float soilMoisture  = 55f;   // state: updated every day by the water balance
+    [Range(0f, 16f)]    public float sunlightHours = 8f;
+    [Range(0f, 45f)]    public float temperature   = 25f;
+    [Range(10f, 100f)]  public float humidity      = 62f;
+    [Range(0f, 120f)]   public float rainfall      = 3f;    // mm/day
+    [Range(0f, 60f)]    public float irrigation    = 0f;    // mm/day, applied every day while set
 
     [Header("Read Only")]
-    public float currentScore     = 0f;
-    public float growthRatePerDay = 0f;
-    public int   currentStage     = 0;
+    public float currentScore       = 0f;
+    public float growthRatePerDay   = 0f;    // % progress per day
+    public int   currentStage       = 0;
+    public float averageProgress    = 0f;    // 0 to 1
+    public float evapotranspiration = 0f;    // ETc, mm/day
+    public float forecastDays       = 0f;    // days to maturity, or to death if forecastIsDeath
+    public float forecastLow        = 0f;    // 90% band from the conformal interval
+    public float forecastHigh       = 0f;    // infinity if the band reaches the other outcome
+    public bool  forecastIsDeath    = false;
+    public bool  usingLearnedModel  = false;
+    public float modelLoadMs        = 0f;    // time to parse growth_model.json
 
-    private Plant[] allPlants;
+    public static readonly string[] StageNames =
+        { "Seed", "Germination", "Sprout", "Seedling", "Vegetative", "Flowering", "Mature" };
+
+    // Water balance (FAO-56 inspired), identical to twin_core.py
+    public const float MATURE_AT = 0.98f;
+    const float FC = 70f, WP = 5f, P_DEPLETION = 0.40f;
+    const float MM_PER_PCT = 1.35f, DRAIN_RATE = 0.5f, RA = 35f, N_DAYLIGHT = 12f;
+    static readonly float SM_P = FC - P_DEPLETION * (FC - WP);
+    static readonly float[] KC = { 0.60f, 0.60f, 0.75f, 0.90f, 1.15f, 1.15f, 0.80f };
+
+    // Analytic response function, identical to twin_core.growth_score
+    static readonly float[,] P = {
+        // opt_min, opt_max, hard_min, hard_max, weight
+        { 6.0f,  7.0f,  3.5f,  9.5f,   1.0f },   // pH
+        { 40f,   70f,   5f,    100f,   1.4f },   // soil moisture
+        { 6f,    10f,   0f,    16f,    1.2f },   // sunlight
+        { 20f,   30f,   0f,    45f,    1.4f },   // temperature
+        { 50f,   75f,   10f,   100f,   0.9f },   // humidity
+    };
+    static readonly float[] SIGMA = { 1.0f, 0.9f, 0.8f, 0.7f, 0.6f, 0.5f, 0.4f };
+
+    private GrowthModel model;
+    private Plant[]     allPlants;
+    private float       initialSoilMoisture = 55f;
+
+    void Awake()
+    {
+        if (modelJson != null)
+        {
+            try
+            {
+                var timer = System.Diagnostics.Stopwatch.StartNew();
+                model = GrowthModel.Load(modelJson.text);
+                modelLoadMs = (float)timer.Elapsed.TotalMilliseconds;
+                usingLearnedModel = true;
+                Debug.Log($"GrowthEngine: loaded learned model ({model.TreeCount} trees) in {modelLoadMs:F1} ms.");
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogWarning($"GrowthEngine: could not load model, using analytic function. {e.Message}");
+            }
+        }
+        else
+        {
+            Debug.LogWarning("GrowthEngine: no model JSON assigned, using analytic response function.");
+        }
+    }
 
     void Start()
-{
-    clock.OnDayPassed += OnDayPassed;
-}
+    {
+        if (slidersPanel == null)
+            slidersPanel = FindFirstObjectByType<SlidersPanel>();
+
+        // SlidersPanel pushes its values in Awake, so this is the starting soil moisture
+        initialSoilMoisture = soilMoisture;
+        clock.OnDayPassed += OnDayPassed;
+    }
 
     void Update()
     {
         // Wait until plants are spawned before grabbing the array
         if (allPlants == null || allPlants.Length == 0)
-        {
             allPlants = farmGrid.GetAllPlants();
-        }
     }
 
     void OnDayPassed()
     {
-        // Get score from placeholder model (swap with ONNX later)
-        currentScore = PlaceholderModel(
-            pH, soilMoisture, sunlightHours,
-            temperature, humidity, rainfall, currentStage
-        );
+        if (allPlants == null || allPlants.Length == 0)
+            allPlants = farmGrid.GetAllPlants();
+        if (allPlants == null) return;
 
-        // Calculate growth rate for UI display
-        if (currentScore >= 0.5f)
-            growthRatePerDay =  (currentScore - 0.5f) * 2f * 2f;
-        else
-            growthRatePerDay = -(0.5f - currentScore) * 2f * 1.5f;
+        // 1. Water balance (uses the stage at the start of the day)
+        soilMoisture = WaterStep(soilMoisture, rainfall, irrigation, temperature, humidity,
+                                 sunlightHours, currentStage, out evapotranspiration);
+        if (slidersPanel != null) slidersPanel.ShowSoilMoisture(soilMoisture);
 
-        // Update all plants
+        // 2. Growth score
+        currentScore     = PredictScore(pH, soilMoisture, sunlightHours, temperature, humidity, currentStage);
+        growthRatePerDay = 100f * Delta(currentScore);
+
+        // 3. Plants
+        float sum = 0f; int n = 0;
         foreach (Plant plant in allPlants)
         {
-            if (plant != null)
-                plant.UpdateGrowth(currentScore);
+            if (plant == null) continue;
+            plant.UpdateGrowth(currentScore);
+            sum += plant.growthProgress; n++;
         }
+        averageProgress = n > 0 ? sum / n : 0f;
+        currentStage    = Mathf.Clamp(Mathf.FloorToInt(averageProgress * 7f), 0, 6);
 
-        // Update current stage based on average growth
-        if (allPlants.Length > 0)
-        {
-            float avgProgress = 0f;
-            foreach (Plant plant in allPlants)
-                if (plant != null) avgProgress += plant.growthProgress;
-            avgProgress /= allPlants.Length;
-            currentStage = Mathf.Clamp(Mathf.FloorToInt(avgProgress * 7), 0, 6);
-        }
+        // 4. Forecast if today's conditions persist, with the conformal band
+        UpdateForecast();
     }
 
-    float PlaceholderModel(float pH, float moisture, float sunlight,
-                           float temp, float humidity, float rainfall, int stage)
+    void UpdateForecast()
     {
-        // Mimics the Python bell curve scoring
-        // Replace this entire method with ONNX inference later
+        float q = usingLearnedModel ? model.ConformalQ90 : 0f;
+        forecastDays = Forecast(averageProgress, currentScore, out forecastIsDeath);
 
-        float pHScore       = BellScore(pH,       6.0f, 7.0f,  3.5f, 9.5f);
-        float moistureScore = BellScore(moisture, 40f,  70f,   5f,   100f);
-        float sunScore      = BellScore(sunlight, 6f,   10f,   0f,   16f);
-        float tempScore     = BellScore(temp,     20f,  30f,   0f,   45f);
-        float humidScore    = BellScore(humidity, 50f,  75f,   10f,  100f);
-        float rainScore     = BellScore(rainfall, 20f,  60f,   0f,   120f);
-
-        float raw = (pHScore       * 1.0f +
-                     moistureScore * 1.4f +
-                     sunScore      * 1.2f +
-                     tempScore     * 1.4f +
-                     humidScore    * 0.9f +
-                     rainScore     * 1.1f) / 7.0f;
-
-        // Critical failure penalty
-        float minScore = Mathf.Min(pHScore,
-                         Mathf.Min(moistureScore,
-                         Mathf.Min(sunScore,
-                         Mathf.Min(tempScore,
-                         Mathf.Min(humidScore, rainScore)))));
-
-        if (minScore < 0.2f)
-            raw = raw * Mathf.Pow(minScore / 0.2f, 1.5f) * 0.5f;
-
-        raw = Mathf.Clamp01(raw);
-
-        // Map to 0-1 growth score
-        if (raw < 0.5f)
-            return (raw / 0.5f) * 0.5f;
+        // A higher score means earlier maturity or later death, so the band ends swap with the outcome.
+        // If one end of the band crosses to the other outcome, that end is unbounded.
+        float optimistic  = Forecast(averageProgress, Mathf.Clamp01(currentScore + q), out bool optimisticDeath);
+        float pessimistic = Forecast(averageProgress, Mathf.Clamp01(currentScore - q), out bool pessimisticDeath);
+        if (forecastIsDeath)
+        {
+            forecastLow  = pessimistic;
+            forecastHigh = optimisticDeath ? optimistic : float.PositiveInfinity;
+        }
         else
-            return 0.5f + ((raw - 0.5f) / 0.5f) * 0.5f;
+        {
+            forecastLow  = optimistic;
+            forecastHigh = pessimisticDeath ? float.PositiveInfinity : pessimistic;
+        }
     }
 
-    float BellScore(float value, float optMin, float optMax,
-                    float hardMin, float hardMax)
+    /// <summary>Called when the simulation is reset: restores the starting soil moisture and
+    /// clears the daily outputs.</summary>
+    public void ResetState()
     {
-        if (value <= hardMin || value >= hardMax) return 0f;
+        soilMoisture       = initialSoilMoisture;
+        currentScore       = 0f;
+        growthRatePerDay   = 0f;
+        currentStage       = 0;
+        averageProgress    = 0f;
+        evapotranspiration = 0f;
+        forecastDays       = 0f;
+        forecastLow        = 0f;
+        forecastHigh       = 0f;
+        forecastIsDeath    = false;
 
-        if (value >= optMin && value <= optMax)
+        if (slidersPanel != null) slidersPanel.ShowSoilMoisture(soilMoisture);
+    }
+
+    // Model
+
+    public float PredictScore(float ph, float moisture, float sunlight, float temp, float rh, int stage)
+    {
+        if (usingLearnedModel)
+            return model.Predict(ph, moisture, sunlight, temp, rh, stage);
+        return AnalyticScore(ph, moisture, sunlight, temp, rh, stage);
+    }
+
+    public static float AnalyticScore(float ph, float moisture, float sunlight, float temp, float rh, int stage)
+    {
+        float[] x = { ph, moisture, sunlight, temp, rh };
+        float weighted = 0f, weights = 0f, phiMin = 1f;
+        int stressed = 0;
+        for (int j = 0; j < 5; j++)
         {
-            float optMid  = (optMin + optMax) / 2f;
-            float optHalf = (optMax - optMin) / 2f;
-            float dev     = Mathf.Abs(value - optMid) / (optHalf + 1e-6f);
-            return 0.85f + 0.15f * (1f - dev);
+            float phi = Bell(x[j], P[j, 0], P[j, 1], P[j, 2], P[j, 3]);
+            weighted += P[j, 4] * phi;
+            weights  += P[j, 4];
+            phiMin    = Mathf.Min(phiMin, phi);
+            if (phi < 0.5f) stressed++;
         }
+        float r     = weighted / weights;
+        float cCrit = phiMin < 0.2f ? 0.5f * Mathf.Pow(phiMin / 0.2f, 1.5f) : 1f;
+        float cComp = stressed >= 2 ? Mathf.Pow(0.6f, stressed - 1) : 1f;
+        float gamma = 1f + 0.8f * SIGMA[Mathf.Clamp(stage, 0, 6)];
+        return Mathf.Clamp01(Mathf.Pow(r * cCrit * cComp, gamma));
+    }
 
-        if (value < optMin)
+    static float Bell(float x, float a, float b, float l, float u)
+    {
+        if (x <= l || x >= u) return 0f;
+        if (x >= a && x <= b)
         {
-            float dist = (optMin - value) / (optMin - hardMin + 1e-6f);
-            return Mathf.Clamp01(1f - Mathf.Pow(dist, 1.8f));
+            float m = (a + b) / 2f, h = (b - a) / 2f;
+            return 0.85f + 0.15f * (1f - Mathf.Abs(x - m) / h);
         }
+        float d = x < a ? (a - x) / (a - l) : (x - b) / (u - b);
+        return 0.85f * (1f - Mathf.Pow(Mathf.Clamp01(d), 1.8f));
+    }
 
-        float distR = (value - optMax) / (hardMax - optMax + 1e-6f);
-        return Mathf.Clamp01(1f - Mathf.Pow(distR, 1.8f));
+    // Water balance
+
+    public static float Et0Turc(float temp, float rh, float sunlight)
+    {
+        float t   = Mathf.Max(temp, 0.1f);
+        float rs  = (0.25f + 0.5f * Mathf.Min(sunlight, N_DAYLIGHT) / N_DAYLIGHT) * RA;
+        float cRh = rh < 50f ? 1f + (50f - rh) / 70f : 1f;
+        return 0.013f * t / (t + 15f) * (23.8856f * rs + 50f) * cRh;
+    }
+
+    public static float WaterStep(float sm, float rain, float irr, float temp, float rh, float sunlight,
+                                  int stage, out float etc)
+    {
+        float ks = Mathf.Clamp01((sm - WP) / (SM_P - WP));
+        etc = KC[Mathf.Clamp(stage, 0, 6)] * Et0Turc(temp, rh, sunlight) * ks;
+        float w   = sm * MM_PER_PCT + rain + irr - etc;
+        float wFc = FC * MM_PER_PCT;
+        if (w > wFc) w -= DRAIN_RATE * (w - wFc);
+        w = Mathf.Clamp(w, 0f, 100f * MM_PER_PCT);
+        return w / MM_PER_PCT;
+    }
+
+    // Crop dynamics
+
+    public static float Delta(float s)
+    {
+        return s >= 0.5f ? 0.04f * (s - 0.5f) : -0.03f * (0.5f - s);
+    }
+
+    static float Forecast(float progress, float score, out bool death)
+    {
+        float d = Delta(score);
+        death = d < 0f;
+        if (d > 0f) return (MATURE_AT - progress) / d;
+        if (d < 0f) return progress / -d;
+        return float.PositiveInfinity;
     }
 
     void OnDestroy()

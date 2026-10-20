@@ -14,3 +14,8 @@ ProfilerCaptures/
 *.userprefs
 .DS_Store
 thumbs.db
+
+# Python (ml/)
+ml/.venv/
+ml/outputs/*.pkl
+__pycache__/

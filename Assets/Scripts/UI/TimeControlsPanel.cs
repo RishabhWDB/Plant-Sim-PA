@@ -64,6 +64,11 @@ public class TimeControlsPanel : MonoBehaviour
             foreach (Plant plant in farmGrid.GetAllPlants())
                 if (plant != null) plant.ResetGrowth();
         }
+
+        // Reset soil moisture and the forecast
+        GrowthEngine growthEngine = FindFirstObjectByType<GrowthEngine>();
+        if (growthEngine != null)
+            growthEngine.ResetState();
     }
 
     void UpdateDayCounter()

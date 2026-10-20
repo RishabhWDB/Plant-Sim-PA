@@ -2,6 +2,11 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 
+/// <summary>
+/// Environment controls. Soil moisture is now a state that the water balance changes every day:
+/// the slider follows it automatically, and dragging it irrigates or drains the field to that level.
+/// Rainfall is a weather input in mm/day that feeds the soil.
+/// </summary>
 public class SlidersPanel : MonoBehaviour
 {
     [Header("References")]
@@ -23,7 +28,8 @@ public class SlidersPanel : MonoBehaviour
     public TextMeshProUGUI humidityLabel;
     public TextMeshProUGUI rainfallLabel;
 
-    void Start()
+    // Awake, so GrowthEngine.Start sees the slider values as the starting state
+    void Awake()
     {
         // Set slider ranges
         pHSlider.minValue          = 3.5f;  pHSlider.maxValue          = 9.5f;
@@ -39,7 +45,7 @@ public class SlidersPanel : MonoBehaviour
         sunlightSlider.value    = 8f;
         temperatureSlider.value = 25f;
         humiditySlider.value    = 62f;
-        rainfallSlider.value    = 40f;
+        rainfallSlider.value    = 3f;
 
         // Hook up listeners
         pHSlider.onValueChanged.AddListener(v          => OnSliderChanged());
@@ -49,6 +55,14 @@ public class SlidersPanel : MonoBehaviour
         humiditySlider.onValueChanged.AddListener(v    => OnSliderChanged());
         rainfallSlider.onValueChanged.AddListener(v    => OnSliderChanged());
 
+        OnSliderChanged();
+    }
+
+    /// <summary>Called by GrowthEngine after the daily water balance; moves the slider without
+    /// treating it as a user change.</summary>
+    public void ShowSoilMoisture(float value)
+    {
+        moistureSlider.SetValueWithoutNotify(value);
         UpdateLabels();
     }
 
@@ -56,7 +70,7 @@ public class SlidersPanel : MonoBehaviour
     {
         // Push values to GrowthEngine
         growthEngine.pH            = pHSlider.value;
-        growthEngine.soilMoisture  = moistureSlider.value;
+        growthEngine.soilMoisture  = moistureSlider.value;   // dragging = irrigate or drain to this level
         growthEngine.sunlightHours = sunlightSlider.value;
         growthEngine.temperature   = temperatureSlider.value;
         growthEngine.humidity      = humiditySlider.value;
@@ -68,10 +82,10 @@ public class SlidersPanel : MonoBehaviour
     void UpdateLabels()
     {
         pHLabel.text          = $"pH: {pHSlider.value:F1}";
-        moistureLabel.text    = $"Moisture: {moistureSlider.value:F0}%";
+        moistureLabel.text    = $"Soil moisture: {moistureSlider.value:F0}%";
         sunlightLabel.text    = $"Sunlight: {sunlightSlider.value:F1} hrs";
         temperatureLabel.text = $"Temp: {temperatureSlider.value:F0} C";
         humidityLabel.text    = $"Humidity: {humiditySlider.value:F0}%";
-        rainfallLabel.text    = $"Rainfall: {rainfallSlider.value:F0} mm";
+        rainfallLabel.text    = $"Rainfall: {rainfallSlider.value:F0} mm/day";
     }
 }
