@@ -1,0 +1,25 @@
+{
+  "scenario": "acid_soil",
+  "outcome": "dead",
+  "final_day": 43,
+  "final_progress_percent": 0.08,
+  "matured": false,
+  "days_to_maturity": null,
+  "days_with_score_below_0_5": 14,
+  "mean_growth_score": 0.423,
+  "interventions": 0,
+  "interventions_by_parameter": {},
+  "irrigation_mm": 0.0,
+  "drainage_mm": 0.0,
+  "what_if_queries": 0,
+  "policy": "none",
+  "seed": 3,
+  "events": [
+    {
+      "name": "acid_rain",
+      "start_day": 30,
+      "end_day": 30
+    }
+  ],
+  "log_file": "none_acid_soil_s3.jsonl"
+}

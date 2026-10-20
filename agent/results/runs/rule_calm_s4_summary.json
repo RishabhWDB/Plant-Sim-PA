@@ -1,0 +1,21 @@
+{
+  "scenario": "calm",
+  "outcome": "matured",
+  "final_day": 54,
+  "final_progress_percent": 98.23,
+  "matured": true,
+  "days_to_maturity": 54,
+  "days_with_score_below_0_5": 0,
+  "mean_growth_score": 0.9761,
+  "interventions": 1,
+  "interventions_by_parameter": {
+    "soil_moisture": 1
+  },
+  "irrigation_mm": 23.6,
+  "drainage_mm": 0.0,
+  "what_if_queries": 0,
+  "policy": "rule",
+  "seed": 4,
+  "events": [],
+  "log_file": "rule_calm_s4.jsonl"
+}

@@ -1,0 +1,29 @@
+{
+  "scenario": "acid_soil",
+  "outcome": "matured",
+  "final_day": 64,
+  "final_progress_percent": 98.13,
+  "matured": true,
+  "days_to_maturity": 64,
+  "days_with_score_below_0_5": 0,
+  "mean_growth_score": 0.8991,
+  "interventions": 14,
+  "interventions_by_parameter": {
+    "soil_moisture": 7,
+    "ph": 6,
+    "sunlight_hours": 1
+  },
+  "irrigation_mm": 163.9,
+  "drainage_mm": 0.0,
+  "what_if_queries": 0,
+  "policy": "rule",
+  "seed": 0,
+  "events": [
+    {
+      "name": "acid_rain",
+      "start_day": 30,
+      "end_day": 30
+    }
+  ],
+  "log_file": "rule_acid_soil_s0.jsonl"
+}

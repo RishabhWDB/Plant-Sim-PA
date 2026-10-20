@@ -1,0 +1,13 @@
+scope,policy,seasons,success_rate,mean_health,reaction_days,actions_per_season,what_if_per_action
+all,none,25,0.4,0.5988,,0,
+all,rule,25,1.0,0.8768,3.52,10.16,
+acid_soil,none,5,0.0,0.421,,0,
+acid_soil,rule,5,1.0,0.8809,1,16.2,
+calm,none,5,1.0,0.967,,0,
+calm,rule,5,1.0,0.9758,,1,
+drought,none,5,0.0,0.4066,,0,
+drought,rule,5,1.0,0.8899,7,8.2,
+heatwave_storm,none,5,1.0,0.7988,,0,
+heatwave_storm,rule,5,1.0,0.8738,3.6,10,
+monsoon,none,5,0.0,0.4005,,0,
+monsoon,rule,5,1.0,0.7634,2.4,15.4,

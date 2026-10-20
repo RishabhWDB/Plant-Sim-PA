@@ -1,0 +1,30 @@
+{
+  "scenario": "heatwave_storm",
+  "outcome": "matured",
+  "final_day": 84,
+  "final_progress_percent": 98.29,
+  "matured": true,
+  "days_to_maturity": 84,
+  "days_with_score_below_0_5": 1,
+  "mean_growth_score": 0.8131,
+  "interventions": 0,
+  "interventions_by_parameter": {},
+  "irrigation_mm": 0.0,
+  "drainage_mm": 0.0,
+  "what_if_queries": 0,
+  "policy": "none",
+  "seed": 3,
+  "events": [
+    {
+      "name": "heatwave",
+      "start_day": 18,
+      "end_day": 29
+    },
+    {
+      "name": "storm",
+      "start_day": 42,
+      "end_day": 51
+    }
+  ],
+  "log_file": "none_heatwave_storm_s3.jsonl"
+}

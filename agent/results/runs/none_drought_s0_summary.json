@@ -1,0 +1,25 @@
+{
+  "scenario": "drought",
+  "outcome": "dead",
+  "final_day": 73,
+  "final_progress_percent": 0.04,
+  "matured": false,
+  "days_to_maturity": null,
+  "days_with_score_below_0_5": 41,
+  "mean_growth_score": 0.409,
+  "interventions": 0,
+  "interventions_by_parameter": {},
+  "irrigation_mm": 0.0,
+  "drainage_mm": 0.0,
+  "what_if_queries": 0,
+  "policy": "none",
+  "seed": 0,
+  "events": [
+    {
+      "name": "drought",
+      "start_day": 15,
+      "end_day": 38
+    }
+  ],
+  "log_file": "none_drought_s0.jsonl"
+}

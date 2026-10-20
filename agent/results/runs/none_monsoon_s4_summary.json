@@ -1,0 +1,25 @@
+{
+  "scenario": "monsoon",
+  "outcome": "dead",
+  "final_day": 48,
+  "final_progress_percent": 0.0,
+  "matured": false,
+  "days_to_maturity": null,
+  "days_with_score_below_0_5": 29,
+  "mean_growth_score": 0.3979,
+  "interventions": 0,
+  "interventions_by_parameter": {},
+  "irrigation_mm": 0.0,
+  "drainage_mm": 0.0,
+  "what_if_queries": 0,
+  "policy": "none",
+  "seed": 4,
+  "events": [
+    {
+      "name": "monsoon",
+      "start_day": 19,
+      "end_day": 50
+    }
+  ],
+  "log_file": "none_monsoon_s4.jsonl"
+}

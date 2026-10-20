@@ -1,0 +1,28 @@
+{
+  "scenario": "drought",
+  "outcome": "matured",
+  "final_day": 66,
+  "final_progress_percent": 98.53,
+  "matured": true,
+  "days_to_maturity": 66,
+  "days_with_score_below_0_5": 0,
+  "mean_growth_score": 0.8934,
+  "interventions": 8,
+  "interventions_by_parameter": {
+    "soil_moisture": 5,
+    "humidity": 3
+  },
+  "irrigation_mm": 118.3,
+  "drainage_mm": 0.0,
+  "what_if_queries": 0,
+  "policy": "rule",
+  "seed": 3,
+  "events": [
+    {
+      "name": "drought",
+      "start_day": 15,
+      "end_day": 37
+    }
+  ],
+  "log_file": "rule_drought_s3.jsonl"
+}

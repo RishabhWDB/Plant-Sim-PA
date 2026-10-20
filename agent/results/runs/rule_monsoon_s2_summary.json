@@ -1,0 +1,29 @@
+{
+  "scenario": "monsoon",
+  "outcome": "matured",
+  "final_day": 99,
+  "final_progress_percent": 98.03,
+  "matured": true,
+  "days_to_maturity": 99,
+  "days_with_score_below_0_5": 21,
+  "mean_growth_score": 0.7409,
+  "interventions": 16,
+  "interventions_by_parameter": {
+    "soil_moisture": 13,
+    "sunlight_hours": 1,
+    "humidity": 2
+  },
+  "irrigation_mm": 22.2,
+  "drainage_mm": 324.0,
+  "what_if_queries": 0,
+  "policy": "rule",
+  "seed": 2,
+  "events": [
+    {
+      "name": "monsoon",
+      "start_day": 14,
+      "end_day": 46
+    }
+  ],
+  "log_file": "rule_monsoon_s2.jsonl"
+}

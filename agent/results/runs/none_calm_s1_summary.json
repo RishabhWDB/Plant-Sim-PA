@@ -1,0 +1,19 @@
+{
+  "scenario": "calm",
+  "outcome": "matured",
+  "final_day": 55,
+  "final_progress_percent": 98.35,
+  "matured": true,
+  "days_to_maturity": 55,
+  "days_with_score_below_0_5": 0,
+  "mean_growth_score": 0.9668,
+  "interventions": 0,
+  "interventions_by_parameter": {},
+  "irrigation_mm": 0.0,
+  "drainage_mm": 0.0,
+  "what_if_queries": 0,
+  "policy": "none",
+  "seed": 1,
+  "events": [],
+  "log_file": "none_calm_s1.jsonl"
+}

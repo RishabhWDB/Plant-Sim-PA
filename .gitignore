@@ -19,3 +19,4 @@ thumbs.db
 ml/.venv/
 ml/outputs/*.pkl
 __pycache__/
+agent/runs/
