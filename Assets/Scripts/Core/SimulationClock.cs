@@ -30,6 +30,14 @@ public class SimulationClock : MonoBehaviour
         }
     }
 
+    /// <summary>Advances exactly one day. Used by SimulationServer while the clock is paused.</summary>
+    public void AdvanceOneDay()
+    {
+        dayProgress = 0f;
+        currentDay++;
+        OnDayPassed?.Invoke();
+    }
+
     public void Pause()
     {
         previousTimeScale = timeScale;

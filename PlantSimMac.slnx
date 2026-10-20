@@ -1,6 +1,7 @@
 ﻿<Solution>
-  <Project Path="Assembly-CSharp-Editor.csproj" />
   <Project Path="PlantSim.csproj" />
-  <Project Path="Assembly-CSharp.csproj" />
+  <Project Path="Assembly-CSharp-Editor.csproj" />
   <Project Path="PlantSim.Tests.EditMode.csproj" />
+  <Project Path="PlantSim.Tests.PlayMode.csproj" />
+  <Project Path="Assembly-CSharp.csproj" />
 </Solution>

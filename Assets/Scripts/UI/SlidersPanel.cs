@@ -58,6 +58,26 @@ public class SlidersPanel : MonoBehaviour
         OnSliderChanged();
     }
 
+    /// <summary>Sets a parameter by its API name (used by SimulationServer), so agent changes move
+    /// the sliders. Setting soil_moisture irrigates or drains the field to that level.</summary>
+    public bool SetParameter(string name, float value)
+    {
+        Slider s = name switch
+        {
+            "ph"             => pHSlider,
+            "soil_moisture"  => moistureSlider,
+            "sunlight_hours" => sunlightSlider,
+            "temperature"    => temperatureSlider,
+            "humidity"       => humiditySlider,
+            "rainfall"       => rainfallSlider,
+            _                => null
+        };
+        if (s == null) return false;
+        s.value = value;
+        OnSliderChanged();
+        return true;
+    }
+
     /// <summary>Called by GrowthEngine after the daily water balance; moves the slider without
     /// treating it as a user change.</summary>
     public void ShowSoilMoisture(float value)

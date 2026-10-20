@@ -136,23 +136,42 @@ public class GrowthEngine : MonoBehaviour
 
     void UpdateForecast()
     {
-        float q = usingLearnedModel ? model.ConformalQ90 : 0f;
-        forecastDays = Forecast(averageProgress, currentScore, out forecastIsDeath);
+        forecastDays = ComputeForecast(averageProgress, currentScore, ConformalQ90,
+                                       out forecastLow, out forecastHigh, out forecastIsDeath);
+    }
 
-        // A higher score means earlier maturity or later death, so the band ends swap with the outcome.
-        // If one end of the band crosses to the other outcome, that end is unbounded.
-        float optimistic  = Forecast(averageProgress, Mathf.Clamp01(currentScore + q), out bool optimisticDeath);
-        float pessimistic = Forecast(averageProgress, Mathf.Clamp01(currentScore - q), out bool pessimisticDeath);
-        if (forecastIsDeath)
+    /// <summary>Half-width of the 90% conformal interval; 0 with the analytic fallback.</summary>
+    public float ConformalQ90 => usingLearnedModel ? model.ConformalQ90 : 0f;
+
+    /// <summary>Days to maturity, or to death if death is true, if this score persists, with the
+    /// 90% band. A higher score means earlier maturity or later death, so the band ends swap with
+    /// the outcome; if one end crosses to the other outcome, that end is unbounded.</summary>
+    public static float ComputeForecast(float progress, float score, float q,
+                                        out float low, out float high, out bool death)
+    {
+        float days        = Forecast(progress, score, out death);
+        float optimistic  = Forecast(progress, Mathf.Clamp01(score + q), out bool optimisticDeath);
+        float pessimistic = Forecast(progress, Mathf.Clamp01(score - q), out bool pessimisticDeath);
+        if (death)
         {
-            forecastLow  = pessimistic;
-            forecastHigh = optimisticDeath ? optimistic : float.PositiveInfinity;
+            low  = pessimistic;
+            high = optimisticDeath ? optimistic : float.PositiveInfinity;
         }
         else
         {
-            forecastLow  = optimistic;
-            forecastHigh = pessimisticDeath ? float.PositiveInfinity : pessimistic;
+            low  = optimistic;
+            high = pessimisticDeath ? float.PositiveInfinity : pessimistic;
         }
+        return days;
+    }
+
+    /// <summary>What tomorrow would bring under these conditions: soil moisture after the water
+    /// balance, crop water use and the growth score, at today's stage. Changes nothing.</summary>
+    public float PredictNextDay(float ph, float moisture, float sunlight, float temp, float rh, float rain,
+                                out float nextMoisture, out float etc)
+    {
+        nextMoisture = WaterStep(moisture, rain, irrigation, temp, rh, sunlight, currentStage, out etc);
+        return PredictScore(ph, nextMoisture, sunlight, temp, rh, currentStage);
     }
 
     /// <summary>Called when the simulation is reset: restores the starting soil moisture and
