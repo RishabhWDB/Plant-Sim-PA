@@ -1,8 +1,9 @@
 """
 Batch evaluation on the local replica of the v4 twin: every policy on every scenario.
 
-  python agent/evaluate.py --seeds 5                    # baselines only (free, about 2 minutes)
-  python agent/evaluate.py --seeds 5 --include-agent    # also runs the LLM agent (uses API credits)
+  python agent/evaluate.py --seeds 5                                # baselines only (free, about 2 minutes)
+  python agent/evaluate.py --seeds 5 --include-agent                # adds the live agent (DeepInfra credits)
+  python agent/evaluate.py --seeds 5 --include-agent --dry-run      # fake LLM, written to agent/runs/dry_run_eval
 
 Writes to agent/results/: results.csv, one progress chart per scenario, the metrics in
 METRICS.md / metrics_*.csv, and RESULTS_TABLE.md with the rows used in the paper and slides.
@@ -22,8 +23,7 @@ RESULTS_DIR = Path(__file__).resolve().parent / "results"
 FIELDS = ["policy", "scenario", "seed", "outcome", "matured", "days_to_maturity",
           "final_progress_percent", "mean_growth_score", "days_with_score_below_0_5",
           "interventions", "irrigation_mm", "drainage_mm", "what_if_queries",
-          "llm_calls", "input_tokens", "output_tokens", "cache_read_tokens", "cache_write_tokens",
-          "stopped_early"]
+          "llm_calls", "input_tokens", "output_tokens", "llm_errors", "rejected_by_twin", "model"]
 
 
 def load_curve(log_file):
@@ -73,10 +73,15 @@ def main():
     p.add_argument("--seeds", type=int, default=1, help="plant-variation seeds per run")
     p.add_argument("--scenarios", nargs="*", default=list(SCENARIOS))
     p.add_argument("--max-days", type=int, default=120)
+    p.add_argument("--dry-run", action="store_true", help="agent uses a fake LLM; results go to agent/runs")
+    p.add_argument("--days-per-tick", type=int, default=3, help="simulated days between agent decisions")
+    p.add_argument("--model", default=None, help="DeepInfra model (default DEEPINFRA_MODEL)")
     args = p.parse_args()
 
     policies = ["none", "rule"] + (["agent"] if args.include_agent else [])
-    out_dir = RESULTS_DIR
+    # Dry runs never overwrite the committed results
+    out_dir = RESULTS_DIR.parent / "runs" / "dry_run_eval" if args.dry_run else RESULTS_DIR
+    agent_options = {"dry_run": args.dry_run, "days_per_tick": args.days_per_tick, "model": args.model}
     runs_dir = out_dir / "runs"
     runs_dir.mkdir(parents=True, exist_ok=True)
 
@@ -86,8 +91,8 @@ def main():
             for seed in range(args.seeds):
                 print(f"Running {policy} on {scenario} (seed {seed})...")
                 s = run_season(policy, scenario, backend="local", seed=seed,
-                               max_days=args.max_days, log_dir=str(runs_dir),
-                               verbose=(policy == "agent"), timestamped=False)
+                               max_days=args.max_days, log_dir=str(runs_dir), agent_options=agent_options,
+                               verbose=False, timestamped=False)
                 results.append(s)
 
     with open(out_dir / "results.csv", "w", newline="") as f:

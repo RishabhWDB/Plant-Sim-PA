@@ -144,6 +144,9 @@ class UnitySim:
     def pause(self):
         return self._req("POST", "/pause")
 
+    def resume(self):
+        return self._req("POST", "/resume")
+
     def predict(self, overrides):
         return self._req("POST", "/predict", {k: float(v) for k, v in overrides.items()})
 
@@ -249,6 +252,9 @@ class LocalSim:
         return self.state()
 
     def pause(self):
+        return {"ok": True}
+
+    def resume(self):
         return {"ok": True}
 
     def set_parameter(self, name, value):

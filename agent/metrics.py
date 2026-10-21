@@ -22,8 +22,8 @@ Metric groups
   Efficiency   interventions, interventions per 100 days, irrigation and drainage (mm),
                actuator-limited actions
   Relative     days saved vs no intervention, gap vs rule baseline
-  Agent only   LLM calls, tokens (incl. cache reads/writes), cost, tool calls by type,
-               tool error rate, what-if queries per action, observations per action
+  Agent only   LLM calls, tokens, cost, decisions rejected by the twin, LLM errors,
+               latency, what-if queries (twin predictions) per action
 """
 
 import argparse
@@ -41,20 +41,16 @@ POLICY_LABEL = {"none": "No intervention", "rule": "Rule-based", "agent": "LLM a
 # Categorical slots 1-3 of the reference palette, fixed order by policy
 POLICY_COLOR = {"none": "#2a78d6", "rule": "#eb6834", "agent": "#1baf7a"}
 
+from llm_client import PRICES  # noqa: E402
+
 HERE = Path(__file__).resolve().parent
 
-# USD per million tokens: input, output, cache read, 5-minute cache write
-PRICES = {"claude-sonnet-5-5": (2.00, 10.00, 0.20, 2.50),
-          "claude-opus-5-5":   (4.00, 20.00, 0.40, 5.00)}
-
-
 def season_cost(summary):
+    """USD for one season at DeepInfra's prices for the model (None for dry runs)."""
     p = PRICES.get(summary.get("model"))
     if not p:
         return None
-    return round((summary.get("input_tokens", 0) * p[0] + summary.get("output_tokens", 0) * p[1]
-                  + summary.get("cache_read_tokens", 0) * p[2]
-                  + summary.get("cache_write_tokens", 0) * p[3]) / 1e6, 4)
+    return round((summary.get("input_tokens", 0) * p[0] + summary.get("output_tokens", 0) * p[1]) / 1e6, 6)
 
 
 # Loading
@@ -138,7 +134,7 @@ def run_metrics(summary, records):
     scores = [r["growth_score"] for r in day_rows]
     progress = [r["average_progress_percent"] for r in day_rows]
     interventions = [r for r in records if r["type"] == "intervention"]
-    tool_calls = [r for r in records if r["type"] == "tool_call"]
+    ticks = [r for r in records if r["type"] == "tick"]
 
     sim_scores = scores[1:] if len(scores) > 1 else scores  # skip day 0 observation
     final_day = max(1, summary["final_day"])
@@ -172,31 +168,23 @@ def run_metrics(summary, records):
         m[f"actions_{p}"] = sum(1 for i in interventions if i["parameter"] == p)
 
     # agent-only
-    if tool_calls or summary.get("llm_calls"):
-        by_tool = defaultdict(int)
-        for t in tool_calls:
-            by_tool[t["tool"]] += 1
+    if summary.get("llm_calls"):
         n_actions = max(1, len(interventions))
         m.update({
             "llm_calls": summary.get("llm_calls"),
             "input_tokens": summary.get("input_tokens"),
             "output_tokens": summary.get("output_tokens"),
-            "cache_read_tokens": summary.get("cache_read_tokens"),
-            "cache_write_tokens": summary.get("cache_write_tokens"),
             "cost_usd": season_cost(summary),
             "tokens_per_day": round((summary.get("input_tokens", 0) + summary.get("output_tokens", 0))
                                     / final_day, 1),
-            "tool_calls": len(tool_calls),
-            "tool_error_rate": round(sum(1 for t in tool_calls if t["error"]) / max(1, len(tool_calls)), 4),
-            "calls_get_farm_status": by_tool["get_farm_status"],
-            "calls_simulate_change": by_tool["simulate_change"],
-            "calls_adjust_control": by_tool["adjust_control"],
-            "calls_advance_days": by_tool["advance_days"],
-            "what_if_per_action": round(by_tool["simulate_change"] / n_actions, 2),
-            "observations_per_action": round(by_tool["get_farm_status"] / n_actions, 2),
-            "mean_days_per_advance": round(
-                statistics.mean([t["input"].get("days", 1) for t in tool_calls
-                                 if t["tool"] == "advance_days" and not t["error"]] or [0]), 2),
+            "decisions": len(ticks),
+            "decisions_with_actions": sum(1 for t in ticks if t["actions_applied"]),
+            "rejected_by_twin": sum(1 for t in ticks if t["rejected_by_twin"]),
+            "llm_errors": summary.get("llm_errors", 0),
+            "error_rate": round(sum(1 for t in ticks if t["error"]) / max(1, len(ticks)), 4),
+            "mean_latency_s": summary.get("mean_latency_s"),
+            "mean_prompt_tokens": round(statistics.mean([t["prompt_tokens"] for t in ticks] or [0]), 1),
+            "what_if_per_action": round(summary.get("what_if_queries", 0) / n_actions, 2),
         })
 
     events = event_metrics(summary, days, scores, progress, interventions)
@@ -208,8 +196,8 @@ def run_metrics(summary, records):
 AGG_FIELDS = ["matured", "died", "days_to_maturity", "final_progress_pct", "mean_score", "min_score",
               "stress_days", "critical_days", "interventions", "interventions_per_100_days",
               "irrigation_mm", "drainage_mm", "actuator_limited_actions",
-              "llm_calls", "input_tokens", "output_tokens", "cache_read_tokens", "cost_usd",
-              "tool_calls", "tool_error_rate", "what_if_per_action"]
+              "llm_calls", "input_tokens", "output_tokens", "cost_usd", "rejected_by_twin",
+              "llm_errors", "error_rate", "mean_latency_s", "mean_prompt_tokens", "what_if_per_action"]
 
 
 def mean_std(values):
@@ -376,19 +364,18 @@ def markdown_report(overall_rows, summary_rows, event_rows, run_rows):
     agent_rows = [r for r in summary_rows if r["policy"] == "agent"]
     lines += ["", "## Agent behaviour", ""]
     if agent_rows:
-        lines += ["| Scenario | LLM calls | Tool calls | Tool error rate | What-if per action | "
-                  "Input tokens | Cache-read tokens | Output tokens | Cost (USD) |",
-                  "|---|---|---|---|---|---|---|---|---|"]
+        lines += ["| Scenario | LLM calls | Rejected by twin | Error rate | What-if per action | "
+                  "Prompt tokens per call | Input tokens | Output tokens | Latency (s) | Cost (USD) |",
+                  "|---|---|---|---|---|---|---|---|---|---|"]
         for r in agent_rows:
             lines.append(f"| {r['scenario']} | {pm(r['llm_calls_mean'], r['llm_calls_std'])} | "
-                         f"{pm(r['tool_calls_mean'], r['tool_calls_std'])} | "
-                         f"{fmt(r['tool_error_rate_mean'], pct=True)} | "
-                         f"{fmt(r['what_if_per_action_mean'], 2)} | "
-                         f"{fmt(r['input_tokens_mean'], 0)} | {fmt(r['cache_read_tokens_mean'], 0)} | "
-                         f"{fmt(r['output_tokens_mean'], 0)} | {fmt(r['cost_usd_mean'], 3)} |")
+                         f"{fmt(r['rejected_by_twin_mean'])} | {fmt(r['error_rate_mean'], pct=True)} | "
+                         f"{fmt(r['what_if_per_action_mean'], 2)} | {fmt(r['mean_prompt_tokens_mean'], 0)} | "
+                         f"{fmt(r['input_tokens_mean'], 0)} | {fmt(r['output_tokens_mean'], 0)} | "
+                         f"{fmt(r['mean_latency_s_mean'], 2)} | {fmt(r['cost_usd_mean'], 5)} |")
     else:
         lines.append("No agent runs found. Run `python agent/evaluate.py --seeds 5 --include-agent` "
-                     "with ANTHROPIC_API_KEY set.")
+                     "with DEEPINFRA_API_KEY set.")
 
     lines += ["", "## Metric definitions", "",
               "| Metric | Definition |", "|---|---|",
@@ -405,8 +392,9 @@ def markdown_report(overall_rows, summary_rows, event_rows, run_rows):
               f"| Recovery | Days from event start until score ≥ {RECOVERY_SCORE} for {RECOVERY_HOLD} straight days |",
               "| Days saved vs none | No-intervention days to maturity minus this policy's (where both matured) |",
               "| Gap vs rule | This policy's days to maturity minus the rule baseline's (negative is better) |",
-              "| What-if per action | Digital-twin simulate_change calls per equipment action (agent) |",
-              "| Tool error rate | Share of agent tool calls that returned an error |"]
+              "| What-if per action | Twin next-day predictions used to check plans, per equipment action (agent) |",
+              "| Rejected by twin | Decisions whose plan the twin predicted would lower tomorrow's score by more than 0.02 |",
+              "| Error rate | Share of agent decisions with an LLM failure or an invalid reply |"]
     return "\n".join(lines) + "\n"
 
 
@@ -532,7 +520,7 @@ def results_table_markdown(rows):
     lines = ["# Results table", "",
              "Rows used in the paper and slides. Mean health is the mean daily growth score; reaction is "
              "days from a weather event's start to the first equipment action (policies that never act "
-             "have none); what-if per action is simulate_change calls per equipment action (agent only).",
+             "have none); what-if per action is twin predictions per equipment action (agent only).",
              ""]
     for scope in dict.fromkeys(r["scope"] for r in rows):
         lines += [f"## {'All scenarios' if scope == 'all' else scope}", "",

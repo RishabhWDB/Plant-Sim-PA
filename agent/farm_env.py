@@ -50,6 +50,7 @@ class FarmEnvironment:
         self.interventions = []
         self.events_seen = []
         self.predict_calls = 0
+        self._weather_through = 0      # last day whose weather has been applied (sync)
         self._log_file = open(self.log_path, "w")
         self.last_status = self.sim.state()
         self._record_day(self.last_status, [])
@@ -136,6 +137,21 @@ class FarmEnvironment:
             "growth_score_max": round(max(scores), 4),
             "status": self.status(),
         }
+
+    def sync(self):
+        """Real-time mode (the clock runs on its own): record days that have passed and apply
+        the weather for the coming day, as advance() does when it steps. Returns the status and
+        any weather news."""
+        status = self.sim.state()
+        self.last_status = status
+        self.env = dict(status["environment"])
+        if status["day"] > self.trajectory[-1]["day"]:
+            self._record_day(status, [])
+        news = []
+        while self._weather_through < status["day"] + 1:
+            self._weather_through += 1
+            news += self._apply_weather(self._weather_through)
+        return status, news
 
     # Results
 

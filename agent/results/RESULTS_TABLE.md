@@ -1,6 +1,6 @@
 # Results table
 
-Rows used in the paper and slides. Mean health is the mean daily growth score; reaction is days from a weather event's start to the first equipment action (policies that never act have none); what-if per action is simulate_change calls per equipment action (agent only).
+Rows used in the paper and slides. Mean health is the mean daily growth score; reaction is days from a weather event's start to the first equipment action (policies that never act have none); what-if per action is twin predictions per equipment action (agent only).
 
 ## All scenarios
 

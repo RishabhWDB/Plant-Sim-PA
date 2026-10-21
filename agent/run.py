@@ -22,14 +22,18 @@ from sim_backends import LocalSim, UnitySim
 RUNS_DIR = Path(__file__).resolve().parent / "runs"
 
 
-def make_policy(name, model=None, verbose=True):
+def make_policy(name, agent_options=None, verbose=True):
     if name == "none":
         return NoInterventionPolicy()
     if name == "rule":
         return RuleBasedPolicy()
     if name == "agent":
-        from farm_agent import LLMFarmAgent
-        return LLMFarmAgent(model=model, verbose=verbose)
+        from live_agent import LiveAgent
+        from llm_client import FakeLLM, LLMClient
+        o = agent_options or {}
+        llm = FakeLLM() if o.get("dry_run") else LLMClient(model=o.get("model"))
+        return LiveAgent(llm, days_per_tick=o.get("days_per_tick", 3),
+                         tick_seconds=o.get("tick_seconds", 12.0), verbose=verbose)
     raise ValueError(name)
 
 
@@ -45,7 +49,8 @@ def make_backend(name, url, seed):
 
 
 def run_season(policy_name, scenario_name, backend="unity", url="http://localhost:8765",
-               max_days=120, seed=0, model=None, log_dir=RUNS_DIR, verbose=True, timestamped=True):
+               max_days=120, seed=0, agent_options=None, log_dir=RUNS_DIR, verbose=True,
+               timestamped=True):
     scenario = jittered(SCENARIOS[scenario_name], seed)
     sim = make_backend(backend, url, seed)
     run_name = f"{policy_name}_{scenario_name}_s{seed}"
@@ -53,11 +58,14 @@ def run_season(policy_name, scenario_name, backend="unity", url="http://localhos
         run_name = f"{time.strftime('%Y%m%d_%H%M%S')}_{run_name}"
     env = FarmEnvironment(sim, scenario, max_days=max_days, log_dir=log_dir,
                           run_name=run_name, verbose=verbose)
-    policy = make_policy(policy_name, model, verbose)
+    policy = make_policy(policy_name, agent_options, verbose)
 
     env.reset()
     try:
-        summary = policy.run(env)
+        if policy_name == "agent" and backend == "unity":
+            summary = policy.run_realtime(env)
+        else:
+            summary = policy.run(env)
     finally:
         env.close()
 
@@ -83,11 +91,16 @@ def main():
     p.add_argument("--url", default="http://localhost:8765")
     p.add_argument("--max-days", type=int, default=120)
     p.add_argument("--seed", type=int, default=0)
-    p.add_argument("--model", default=None)
+    p.add_argument("--model", default=None, help="agent: DeepInfra model (default DEEPINFRA_MODEL)")
+    p.add_argument("--dry-run", action="store_true", help="agent: fake LLM, no API calls")
+    p.add_argument("--days-per-tick", type=int, default=3, help="agent, local: days between decisions")
+    p.add_argument("--tick", type=float, default=12.0, help="agent, unity: seconds between decisions")
     args = p.parse_args()
 
     summary = run_season(args.policy, args.scenario, args.backend, args.url,
-                         args.max_days, args.seed, args.model)
+                         args.max_days, args.seed,
+                         agent_options={"model": args.model, "dry_run": args.dry_run,
+                                        "days_per_tick": args.days_per_tick, "tick_seconds": args.tick})
     print("\nSummary")
     print(json.dumps(summary, indent=2))
 

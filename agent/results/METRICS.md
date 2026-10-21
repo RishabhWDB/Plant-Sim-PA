@@ -45,7 +45,7 @@ Reaction = days from event start to first action. Recovery = days from event sta
 
 ## Agent behaviour
 
-No agent runs found. Run `python agent/evaluate.py --seeds 5 --include-agent` with ANTHROPIC_API_KEY set.
+No agent runs found. Run `python agent/evaluate.py --seeds 5 --include-agent` with DEEPINFRA_API_KEY set.
 
 ## Metric definitions
 
@@ -64,5 +64,6 @@ No agent runs found. Run `python agent/evaluate.py --seeds 5 --include-agent` wi
 | Recovery | Days from event start until score ≥ 0.6 for 3 straight days |
 | Days saved vs none | No-intervention days to maturity minus this policy's (where both matured) |
 | Gap vs rule | This policy's days to maturity minus the rule baseline's (negative is better) |
-| What-if per action | Digital-twin simulate_change calls per equipment action (agent) |
-| Tool error rate | Share of agent tool calls that returned an error |
+| What-if per action | Twin next-day predictions used to check plans, per equipment action (agent) |
+| Rejected by twin | Decisions whose plan the twin predicted would lower tomorrow's score by more than 0.02 |
+| Error rate | Share of agent decisions with an LLM failure or an invalid reply |
