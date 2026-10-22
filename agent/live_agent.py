@@ -47,8 +47,10 @@ growth_score is yesterday's score from 0 to 1: above 0.5 the crop grows, below 0
 progress. forecast gives days to maturity or to crop death if conditions persist, with a 90% range \
 (-1 means unbounded). limiting_factor is the variable currently holding growth back, if any.
 
+The state lists each control's current value ("now") and the range you can set it to this time ("can_set_to", the current value plus or minus the per-action limit). "value" in an action is the NEW LEVEL you want, not a change: to raise humidity from 30 to 45, send {"parameter": "humidity", "value": 45}. Every plan is checked with the twin first, and a plan the twin predicts would lower tomorrow's score is not applied (rejected_by_twin in recent_decisions).
+
 Reply with JSON only:
-{"reasoning": "at most 2 sentences", "actions": [{"parameter": "<control>", "value": <number>}]}
+{"reasoning": "at most 2 sentences", "actions": [{"parameter": "<control>", "value": <new level>}]}
 Use at most 2 actions. An empty actions list means wait."""
 
 
@@ -88,8 +90,14 @@ class LiveAgent:
         recent = []
         for h in self.history[-HISTORY:]:
             effect = None if h.get("score_after") is None else round(h["score_after"] - h["score_before"], 3)
-            recent.append({"day": h["day"], "actions": h["applied"] or "wait",
+            recent.append({"day": h["day"], "proposed": h["planned"] or "wait",
                            "rejected_by_twin": h["rejected"], "score_change": effect})
+        env = status["environment"]
+        controls = {}
+        for p, c in CONTROLLABLE.items():
+            now, step = env[p], c["max_step"]
+            controls[p] = {"now": now, "can_set_to": [round(clamp_param(p, now - step), 2),
+                                                      round(clamp_param(p, now + step), 2)]}
         msg = {
             "day": status["day"],
             "days_left": status.get("days_remaining_in_season"),
@@ -100,7 +108,8 @@ class LiveAgent:
             "crop_water_use_mm_per_day": status["evapotranspiration_mm_per_day"],
             "forecast": {"kind": f["kind"], "days": f["days"], "range_90": [f["low_days"], f["high_days"]]},
             "limiting_factor": limiting_factor(status["environment"], status["stage"]),
-            "environment": status["environment"],
+            "controls": controls,
+            "weather": {"temperature": env["temperature"], "rainfall_mm_per_day": env["rainfall"]},
             "active_weather": status.get("active_weather", []),
             "weather_news": news[-3:],
             "recent_decisions": recent,
@@ -163,7 +172,7 @@ class LiveAgent:
 
         if self.verbose and reasoning:
             print(f"[agent day {status['day']}] {reasoning}")
-        self.history.append({"day": status["day"], "applied": applied, "rejected": rejected,
+        self.history.append({"day": status["day"], "planned": planned, "applied": applied, "rejected": rejected,
                              "score_before": status["growth_score"], "score_after": None})
         env.record({
             "type": "tick", "day": status["day"],
@@ -249,7 +258,7 @@ class LiveAgent:
 
     def _report(self, summary):
         decisions = [f"day {h['day']}: score {h['score_before']:.2f}, "
-                     + ("rejected by twin" if h["rejected"] else
+                     + (f"plan {h['planned']} blocked by the twin check" if h["rejected"] else
                         (", ".join(f"{p}->{v}" for p, v in h["applied"].items()) or "wait"))
                      for h in self.history]
         user = json.dumps({"result": {k: summary[k] for k in (

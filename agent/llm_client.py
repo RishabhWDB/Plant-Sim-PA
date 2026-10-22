@@ -127,7 +127,8 @@ class FakeLLM:
             text = "Dry run: no season report is written without a real model."
             info["completion_tokens"] = estimate_tokens(text)
             return text, info
-        env = (parse_json(user) or {}).get("environment", {})   # the prompt is a JSON document
+        controls = (parse_json(user) or {}).get("controls", {})   # the prompt is a JSON document
+        env = {k: v["now"] for k, v in controls.items()}
         gap = {k: abs(env.get(k, t) - t) / self.STEPS[k] for k, t in self.TARGETS.items()}
         actions = [{"parameter": k, "value": self.TARGETS[k]}
                    for k in sorted(gap, key=lambda k: -gap[k])[:2] if gap[k] > 0.25]
