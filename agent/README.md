@@ -81,8 +81,24 @@ One virtual environment serves `ml/` and `agent/` (from the repository root):
 ```bash
 python3 -m venv ml/.venv
 ml/.venv/bin/pip install -r ml/requirements.txt
-export DEEPINFRA_API_KEY=your_key_here                 # only for real LLM calls
-export DEEPINFRA_MODEL=meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo   # optional, this is the default
+cp .env.example .env          # then put your key in .env (only needed for real LLM calls)
+```
+
+Settings live in `.env` at the repository root, which is git-ignored and never committed:
+
+```
+DEEPINFRA_API_KEY=your_key_here
+DEEPINFRA_MODEL=meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo
+```
+
+They are loaded automatically from any working directory. A variable exported in your shell
+overrides the value in `.env`, e.g. `DEEPINFRA_MODEL=mistralai/Mistral-Small-24B-Instruct-2501 ./run_agent.sh ...`.
+
+`./run_agent.sh` runs a script with the venv's Python without activating it; script paths are
+relative to the repository root:
+
+```bash
+./run_agent.sh agent/live_agent.py --backend local --scenario drought
 ```
 
 `LocalSim` loads `ml/outputs/surrogate_v4.pkl` (created by `ml/train_model.py`, not committed).
@@ -93,19 +109,19 @@ Without it, it evaluates `ml/outputs/growth_model.json` with the same tree trave
 
 Live demo (Unity in Play mode with SimulationServer enabled):
 ```bash
-ml/.venv/bin/python agent/live_agent.py --backend unity --scenario drought
+./run_agent.sh agent/live_agent.py --backend unity --scenario drought
 ```
 
 Without Unity:
 ```bash
-ml/.venv/bin/python agent/live_agent.py --backend local --scenario monsoon
-ml/.venv/bin/python agent/run.py --policy rule --backend local --scenario drought
+./run_agent.sh agent/live_agent.py --backend local --scenario monsoon
+./run_agent.sh agent/run.py --policy rule --backend local --scenario drought
 ```
 
 Evaluation:
 ```bash
-ml/.venv/bin/python agent/evaluate.py --seeds 5                   # baselines, about 2 minutes
-ml/.venv/bin/python agent/evaluate.py --seeds 5 --include-agent   # adds the live agent (DeepInfra)
+./run_agent.sh agent/evaluate.py --seeds 5                   # baselines, about 2 minutes
+./run_agent.sh agent/evaluate.py --seeds 5 --include-agent   # adds the live agent (DeepInfra)
 ```
 Outputs go to `agent/results/`: `RESULTS_TABLE.md` (success rate, mean health, reaction days,
 actions per season, what-if per action), `METRICS.md`, CSVs, charts, and per-run logs, summaries

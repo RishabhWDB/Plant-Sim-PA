@@ -20,3 +20,6 @@ ml/.venv/
 ml/outputs/*.pkl
 __pycache__/
 agent/runs/
+
+# Local settings with secrets (template: .env.example)
+.env

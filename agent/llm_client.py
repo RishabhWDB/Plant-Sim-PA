@@ -3,6 +3,7 @@ Small LLM client for the live agent: DeepInfra through its OpenAI-compatible end
 
   DEEPINFRA_API_KEY   required for real calls
   DEEPINFRA_MODEL     optional, defaults to DEFAULT_MODEL
+Both are read from the environment or from .env at the repository root (see .env.example).
 
 One call per decision, JSON reply. Any failure (network, timeout, HTTP error, invalid JSON)
 returns None plus an error string, so the caller can treat it as "no action" and keep going.
@@ -13,6 +14,14 @@ import json
 import os
 import re
 import time
+from pathlib import Path
+
+from dotenv import load_dotenv
+
+# Settings from the repo-root .env, whatever the working directory. Variables already set in the
+# environment win (override=False).
+REPO_ROOT = Path(__file__).resolve().parents[1]
+load_dotenv(REPO_ROOT / ".env", override=False)
 
 BASE_URL = "https://api.deepinfra.com/v1/openai"
 DEFAULT_MODEL = "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo"
@@ -55,7 +64,8 @@ class LLMClient:
 
         key = os.environ.get("DEEPINFRA_API_KEY")
         if not key:
-            raise SystemExit("Set DEEPINFRA_API_KEY, or use --dry-run.")
+            raise SystemExit(f"Set DEEPINFRA_API_KEY in {REPO_ROOT / '.env'} or the environment, "
+                             "or use --dry-run.")
         self.model = model or os.environ.get("DEEPINFRA_MODEL", DEFAULT_MODEL)
         self.client = OpenAI(api_key=key, base_url=BASE_URL, timeout=TIMEOUT_S, max_retries=RETRIES)
         self.json_mode = True   # switched off if the model rejects response_format
