@@ -1,0 +1,37 @@
+{
+  "scenario": "acid_soil",
+  "outcome": "season_ended",
+  "final_day": 120,
+  "final_progress_percent": 93.33,
+  "matured": false,
+  "days_to_maturity": null,
+  "days_with_score_below_0_5": 0,
+  "mean_growth_score": 0.701,
+  "interventions": 30,
+  "interventions_by_parameter": {
+    "ph": 9,
+    "sunlight_hours": 5,
+    "soil_moisture": 7,
+    "humidity": 9
+  },
+  "irrigation_mm": 148.4,
+  "drainage_mm": 0.0,
+  "what_if_queries": 70,
+  "llm_calls": 40,
+  "input_tokens": 29302,
+  "output_tokens": 2743,
+  "llm_errors": 0,
+  "rejected_by_twin": 16,
+  "mean_latency_s": 1.308,
+  "model": "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo",
+  "policy": "agent",
+  "seed": 0,
+  "events": [
+    {
+      "name": "acid_rain",
+      "start_day": 30,
+      "end_day": 30
+    }
+  ],
+  "log_file": "agent_acid_soil_s0.jsonl"
+}

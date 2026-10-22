@@ -244,6 +244,7 @@ class LiveAgent:
         if self.history and self.history[-1].get("score_after") is None:
             self.history[-1]["score_after"] = env.last_status["growth_score"]
         summary = env.summary()
+        self.season_report = self._report(summary)   # first, so its tokens are counted below
         summary.update({
             "llm_calls": self.llm_calls,
             "input_tokens": self.input_tokens,
@@ -253,7 +254,6 @@ class LiveAgent:
             "mean_latency_s": round(sum(self.latencies) / max(1, len(self.latencies)), 3),
             "model": self.llm.model,
         })
-        self.season_report = self._report(summary)
         return summary
 
     def _report(self, summary):
@@ -263,7 +263,7 @@ class LiveAgent:
                      for h in self.history]
         user = json.dumps({"result": {k: summary[k] for k in (
             "scenario", "outcome", "final_day", "final_progress_percent", "days_with_score_below_0_5",
-            "mean_growth_score", "interventions", "irrigation_mm", "rejected_by_twin")},
+            "mean_growth_score", "interventions", "irrigation_mm")}, "plans_blocked_by_twin": self.rejected,
             "decisions": decisions}, separators=(",", ":"))
         system = ("You managed a farm for one season in a digital twin. Write a short season report "
                   "(at most 150 words): what happened, your key decisions, and what you would do "

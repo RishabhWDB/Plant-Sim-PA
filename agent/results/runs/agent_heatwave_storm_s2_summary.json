@@ -1,0 +1,41 @@
+{
+  "scenario": "heatwave_storm",
+  "outcome": "matured",
+  "final_day": 79,
+  "final_progress_percent": 98.38,
+  "matured": true,
+  "days_to_maturity": 79,
+  "days_with_score_below_0_5": 0,
+  "mean_growth_score": 0.8343,
+  "interventions": 20,
+  "interventions_by_parameter": {
+    "humidity": 9,
+    "sunlight_hours": 2,
+    "soil_moisture": 9
+  },
+  "irrigation_mm": 60.4,
+  "drainage_mm": 116.1,
+  "what_if_queries": 48,
+  "llm_calls": 27,
+  "input_tokens": 19932,
+  "output_tokens": 2053,
+  "llm_errors": 0,
+  "rejected_by_twin": 11,
+  "mean_latency_s": 3.182,
+  "model": "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo",
+  "policy": "agent",
+  "seed": 2,
+  "events": [
+    {
+      "name": "heatwave",
+      "start_day": 16,
+      "end_day": 30
+    },
+    {
+      "name": "storm",
+      "start_day": 42,
+      "end_day": 51
+    }
+  ],
+  "log_file": "agent_heatwave_storm_s2.jsonl"
+}

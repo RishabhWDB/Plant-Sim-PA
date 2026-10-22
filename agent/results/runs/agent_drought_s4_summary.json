@@ -1,0 +1,36 @@
+{
+  "scenario": "drought",
+  "outcome": "matured",
+  "final_day": 92,
+  "final_progress_percent": 98.27,
+  "matured": true,
+  "days_to_maturity": 92,
+  "days_with_score_below_0_5": 10,
+  "mean_growth_score": 0.7816,
+  "interventions": 19,
+  "interventions_by_parameter": {
+    "soil_moisture": 9,
+    "humidity": 8,
+    "sunlight_hours": 2
+  },
+  "irrigation_mm": 105.8,
+  "drainage_mm": 18.6,
+  "what_if_queries": 54,
+  "llm_calls": 31,
+  "input_tokens": 22855,
+  "output_tokens": 2263,
+  "llm_errors": 0,
+  "rejected_by_twin": 14,
+  "mean_latency_s": 1.375,
+  "model": "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo",
+  "policy": "agent",
+  "seed": 4,
+  "events": [
+    {
+      "name": "drought",
+      "start_day": 18,
+      "end_day": 42
+    }
+  ],
+  "log_file": "agent_drought_s4.jsonl"
+}

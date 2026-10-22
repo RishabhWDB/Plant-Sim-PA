@@ -1,0 +1,29 @@
+{
+  "scenario": "calm",
+  "outcome": "matured",
+  "final_day": 54,
+  "final_progress_percent": 98.28,
+  "matured": true,
+  "days_to_maturity": 54,
+  "days_with_score_below_0_5": 0,
+  "mean_growth_score": 0.9739,
+  "interventions": 3,
+  "interventions_by_parameter": {
+    "soil_moisture": 1,
+    "humidity": 2
+  },
+  "irrigation_mm": 27.0,
+  "drainage_mm": 0.0,
+  "what_if_queries": 32,
+  "llm_calls": 18,
+  "input_tokens": 13226,
+  "output_tokens": 1398,
+  "llm_errors": 0,
+  "rejected_by_twin": 14,
+  "mean_latency_s": 3.749,
+  "model": "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo",
+  "policy": "agent",
+  "seed": 1,
+  "events": [],
+  "log_file": "agent_calm_s1.jsonl"
+}
