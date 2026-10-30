@@ -1,0 +1,42 @@
+{
+  "scenario": "heatwave_storm",
+  "outcome": "matured",
+  "final_day": 67,
+  "final_progress_percent": 98.51,
+  "matured": true,
+  "days_to_maturity": 67,
+  "days_with_score_below_0_5": 0,
+  "mean_growth_score": 0.8878,
+  "interventions": 14,
+  "interventions_by_parameter": {
+    "humidity": 5,
+    "soil_moisture": 5,
+    "ph": 2,
+    "sunlight_hours": 2
+  },
+  "irrigation_mm": 54.0,
+  "drainage_mm": 81.0,
+  "what_if_queries": 234,
+  "llm_calls": 24,
+  "input_tokens": 22553,
+  "output_tokens": 1835,
+  "llm_errors": 1,
+  "rejected_by_twin": 5,
+  "mean_latency_s": 4.283,
+  "model": "mistralai/Mistral-Small-24B-Instruct-2501",
+  "policy": "agent_mistral",
+  "seed": 3,
+  "events": [
+    {
+      "name": "heatwave",
+      "start_day": 18,
+      "end_day": 29
+    },
+    {
+      "name": "storm",
+      "start_day": 42,
+      "end_day": 51
+    }
+  ],
+  "log_file": "agent_mistral_heatwave_storm_s3.jsonl"
+}

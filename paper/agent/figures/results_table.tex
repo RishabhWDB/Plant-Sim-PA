@@ -1,0 +1,15 @@
+\begin{tabular}{@{}lccccccccc@{}}
+\toprule
+& \multicolumn{5}{c}{Matured seasons / mean health $H$} & \multicolumn{4}{c}{All 25 seasons} \\
+\cmidrule(lr){2-6}\cmidrule(l){7-10}
+Policy & Calm & Drought & Monsoon & Acid soil & Heat+storm & Success & $H$ & Actions & React. (d) \\
+\midrule
+No intervention & 5/5, 0.97 & 0/5, 0.41 & 0/5, 0.40 & 0/5, 0.42 & 5/5, 0.80 & 40\% & 0.599 & 0.0 & -- \\
+Rule-based & 5/5, 0.98 & 5/5, 0.89 & 5/5, 0.76 & 5/5, 0.88 & 5/5, 0.87 & 100\% & 0.877 & 10.2 & 3.5 \\
+\midrule
+LLM agent & 5/5, 0.98 & 5/5, 0.89 & 4/5, 0.68 & 5/5, 0.81 & 5/5, 0.86 & 96\% & 0.843 & 13.7 & 3.6 \\
+Agent, no probes & 5/5, 0.97 & 5/5, 0.88 & 5/5, 0.74 & 2/5, 0.73 & 5/5, 0.85 & 88\% & 0.835 & 15.8 & 3.2 \\
+Agent, no twin check & 2/5, 0.62 & 5/5, 0.78 & 3/5, 0.64 & 2/5, 0.73 & 1/5, 0.51 & 52\% & 0.657 & 40.0 & 1.0 \\
+Agent, Mistral 24B & 5/5, 0.98 & 5/5, 0.91 & 4/5, 0.68 & 5/5, 0.89 & 5/5, 0.88 & 96\% & 0.869 & 11.6 & 2.3 \\
+\bottomrule
+\end{tabular}

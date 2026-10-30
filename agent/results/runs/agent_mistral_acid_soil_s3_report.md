@@ -1,0 +1,3 @@
+The season was a success, with the crop maturing at 98.23% progress. The acid soil scenario presented challenges, but strategic interventions helped maintain a high mean growth score of 0.9071. Key decisions included adjusting pH levels and soil moisture, with 16 interventions made throughout the season. Irrigation totaled 189.0 mm. The crop thrived without any days below a 0.5 growth score.
+
+Next season, I would focus on optimizing pH adjustments to avoid blocks from the twin checks. Additionally, I would monitor soil moisture more closely to prevent fluctuations that might have been avoided.

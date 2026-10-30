@@ -36,10 +36,13 @@ from pathlib import Path
 RECOVERY_SCORE = 0.6
 RECOVERY_HOLD = 3
 
-POLICY_ORDER = ["none", "rule", "agent"]
-POLICY_LABEL = {"none": "No intervention", "rule": "Rule-based", "agent": "LLM agent"}
-# Categorical slots 1-3 of the reference palette, fixed order by policy
-POLICY_COLOR = {"none": "#2a78d6", "rule": "#eb6834", "agent": "#1baf7a"}
+POLICY_ORDER = ["none", "rule", "agent", "agent_noprobe", "agent_nocheck", "agent_mistral"]
+POLICY_LABEL = {"none": "No intervention", "rule": "Rule-based", "agent": "LLM agent",
+                "agent_noprobe": "Agent, no probes", "agent_nocheck": "Agent, no twin check",
+                "agent_mistral": "Agent, Mistral 24B"}
+# Categorical slots 1-6 of the reference palette, fixed order by policy
+POLICY_COLOR = {"none": "#2a78d6", "rule": "#eb6834", "agent": "#1baf7a",
+                "agent_noprobe": "#8a5cc2", "agent_nocheck": "#d4a21f", "agent_mistral": "#d6457a"}
 
 from llm_client import PRICES  # noqa: E402
 
@@ -361,14 +364,14 @@ def markdown_report(overall_rows, summary_rows, event_rows, run_rows):
                      f"{fmt(r['stress_days_during_event'])} | {fmt(r['reaction_days'])} | "
                      f"{fmt(r['recovery_days'])} | {fmt(r['recovery_rate'], pct=True)} |")
 
-    agent_rows = [r for r in summary_rows if r["policy"] == "agent"]
+    agent_rows = [r for r in summary_rows if r["policy"].startswith("agent")]
     lines += ["", "## Agent behaviour", ""]
     if agent_rows:
-        lines += ["| Scenario | LLM calls | Rejected by twin | Error rate | What-if per action | "
+        lines += ["| Policy | Scenario | LLM calls | Rejected by twin | Error rate | What-if per action | "
                   "Prompt tokens per call | Input tokens | Output tokens | Latency (s) | Cost (USD) |",
-                  "|---|---|---|---|---|---|---|---|---|---|"]
+                  "|---|---|---|---|---|---|---|---|---|---|---|"]
         for r in agent_rows:
-            lines.append(f"| {r['scenario']} | {pm(r['llm_calls_mean'], r['llm_calls_std'])} | "
+            lines.append(f"| {POLICY_LABEL.get(r['policy'], r['policy'])} | {r['scenario']} | {pm(r['llm_calls_mean'], r['llm_calls_std'])} | "
                          f"{fmt(r['rejected_by_twin_mean'])} | {fmt(r['error_rate_mean'], pct=True)} | "
                          f"{fmt(r['what_if_per_action_mean'], 2)} | {fmt(r['mean_prompt_tokens_mean'], 0)} | "
                          f"{fmt(r['input_tokens_mean'], 0)} | {fmt(r['output_tokens_mean'], 0)} | "

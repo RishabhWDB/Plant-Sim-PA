@@ -1,0 +1,31 @@
+{
+  "scenario": "calm",
+  "outcome": "dead",
+  "final_day": 62,
+  "final_progress_percent": 0.06,
+  "matured": false,
+  "days_to_maturity": null,
+  "days_with_score_below_0_5": 35,
+  "mean_growth_score": 0.4007,
+  "interventions": 18,
+  "interventions_by_parameter": {
+    "soil_moisture": 11,
+    "ph": 2,
+    "humidity": 2,
+    "sunlight_hours": 3
+  },
+  "irrigation_mm": 135.0,
+  "drainage_mm": 159.5,
+  "what_if_queries": 189,
+  "llm_calls": 22,
+  "input_tokens": 18783,
+  "output_tokens": 1841,
+  "llm_errors": 0,
+  "rejected_by_twin": 0,
+  "mean_latency_s": 2.896,
+  "model": "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo",
+  "policy": "agent_nocheck",
+  "seed": 1,
+  "events": [],
+  "log_file": "agent_nocheck_calm_s1.jsonl"
+}

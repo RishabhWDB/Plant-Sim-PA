@@ -1,0 +1,28 @@
+{
+  "scenario": "calm",
+  "outcome": "matured",
+  "final_day": 53,
+  "final_progress_percent": 98.57,
+  "matured": true,
+  "days_to_maturity": 53,
+  "days_with_score_below_0_5": 0,
+  "mean_growth_score": 0.9818,
+  "interventions": 1,
+  "interventions_by_parameter": {
+    "soil_moisture": 1
+  },
+  "irrigation_mm": 27.0,
+  "drainage_mm": 0.0,
+  "what_if_queries": 168,
+  "llm_calls": 19,
+  "input_tokens": 17829,
+  "output_tokens": 1292,
+  "llm_errors": 0,
+  "rejected_by_twin": 4,
+  "mean_latency_s": 1.131,
+  "model": "mistralai/Mistral-Small-24B-Instruct-2501",
+  "policy": "agent_mistral",
+  "seed": 0,
+  "events": [],
+  "log_file": "agent_mistral_calm_s0.jsonl"
+}

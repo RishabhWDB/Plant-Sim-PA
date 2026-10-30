@@ -1,9 +1,15 @@
 """
 Periodic LLM farm manager: one LLM call per tick, no tool loop, no conversation history.
 
-Each tick the agent reads the twin's state, asks the model for at most two control changes,
-checks them with the twin's next-day prediction (the what-if step, no extra LLM call), clips
-them to the actuator limits and applies them. The model is NOT told the crop's optimal ranges.
+Each tick the agent reads the twin's state, probes the twin with what-if predictions for every
+control (each moved to either end of its reach), asks the model for at most two control changes,
+clips them to the actuator limits, checks each one and then the plan with the twin's next-day
+prediction (no extra LLM call), and applies what passes. The model is NOT told the crop's optimal
+ranges.
+
+The probes stand in for the simulate_change tool of the earlier tool-use agent: the model sees
+which direction helps each control without a second round trip. VARIANTS switches the probes and
+the twin check off one at a time for the ablation in evaluate.py.
 
   python agent/live_agent.py --backend unity --scenario drought            # live, real time
   python agent/live_agent.py --backend local --scenario drought --dry-run  # instant, no API calls
@@ -27,6 +33,14 @@ MAX_ACTIONS = 2
 HISTORY = 3
 PROMPT_BUDGET = 1200     # tokens, system plus user
 
+# Policy names accepted by run.py and evaluate.py, with their LiveAgent options
+VARIANTS = {
+    "agent":         {},                                  # probes and twin check
+    "agent_noprobe": {"probes": False},                   # the design without probes
+    "agent_nocheck": {"twin_check": False},               # plans applied without the twin check
+    "agent_mistral": {"model": "mistralai/Mistral-Small-24B-Instruct-2501"},
+}
+
 API_NAMES = {"pH": "ph", "soil_moisture": "soil_moisture", "sunlight_hours": "sunlight_hours",
              "temperature": "temperature", "humidity": "humidity"}
 
@@ -47,7 +61,7 @@ growth_score is yesterday's score from 0 to 1: above 0.5 the crop grows, below 0
 progress. forecast gives days to maturity or to crop death if conditions persist, with a 90% range \
 (-1 means unbounded). limiting_factor is the variable currently holding growth back, if any.
 
-The state lists each control's current value ("now") and the range you can set it to this time ("can_set_to", the current value plus or minus the per-action limit). "value" in an action is the NEW LEVEL you want, not a change: to raise humidity from 30 to 45, send {"parameter": "humidity", "value": 45}. Every plan is checked with the twin first, and a plan the twin predicts would lower tomorrow's score is not applied (rejected_by_twin in recent_decisions).
+The state lists each control's current value ("now") and the range you can set it to this time ("can_set_to", the current value plus or minus the per-action limit). When present, "twin_tomorrow" maps levels you could set that control to (lowest reachable, current, highest reachable) to the growth_score the twin predicts for tomorrow if only that control changes: pick the level with the highest score. "value" in an action is the NEW LEVEL you want, not a change: to raise humidity from 30 to 45, send {"parameter": "humidity", "value": 45}. Every action is checked with the twin first, and an action the twin predicts would lower tomorrow's score is not applied (rejected_by_twin in recent_decisions lists them).
 
 Reply with JSON only:
 {"reasoning": "at most 2 sentences", "actions": [{"parameter": "<control>", "value": <new level>}]}
@@ -69,8 +83,10 @@ def limiting_factor(environment, stage):
 class LiveAgent:
     name = "agent"
 
-    def __init__(self, llm, days_per_tick=3, tick_seconds=12.0, verbose=True):
+    def __init__(self, llm, days_per_tick=3, tick_seconds=12.0, verbose=True, probes=True, twin_check=True):
         self.llm = llm
+        self.probes = probes
+        self.twin_check = twin_check
         self.days_per_tick = days_per_tick
         self.tick_seconds = tick_seconds
         self.verbose = verbose
@@ -85,7 +101,22 @@ class LiveAgent:
 
     # Prompt
 
-    def user_message(self, status, news):
+    def probe(self, env, status):
+        """The twin's next-day score with no change, and with each control alone moved to either
+        end of its reach this tick (as listed in can_set_to). Each control's table is keyed by the
+        level, so a small model does not have to know which position means lower or higher."""
+        live = status["environment"]
+        keep = env.predict({})["growth_score"]
+        table = {}
+        for p, c in CONTROLLABLE.items():
+            low = clamp_param(p, live[p] - c["max_step"])
+            high = clamp_param(p, live[p] + c["max_step"])
+            table[p] = {f"{round(low, 2):g}": round(env.predict({p: low})["growth_score"], 3),
+                        f"{round(live[p], 2):g}": round(keep, 3),
+                        f"{round(high, 2):g}": round(env.predict({p: high})["growth_score"], 3)}
+        return keep, table
+
+    def user_message(self, status, news, probes=None):
         f = status["forecast"]
         recent = []
         for h in self.history[-HISTORY:]:
@@ -98,6 +129,8 @@ class LiveAgent:
             now, step = env[p], c["max_step"]
             controls[p] = {"now": now, "can_set_to": [round(clamp_param(p, now - step), 2),
                                                       round(clamp_param(p, now + step), 2)]}
+            if probes:
+                controls[p]["twin_tomorrow"] = probes[1][p]
         msg = {
             "day": status["day"],
             "days_left": status.get("days_remaining_in_season"),
@@ -122,7 +155,8 @@ class LiveAgent:
         if self.history and self.history[-1].get("score_after") is None:
             self.history[-1]["score_after"] = status["growth_score"]
 
-        user = self.user_message(status, list(news))
+        probes = self.probe(env, status) if self.probes else None
+        user = self.user_message(status, list(news), probes)
         prompt_tokens = estimate_tokens(SYSTEM_PROMPT + user)
         reply, info = self.llm.complete(SYSTEM_PROMPT, user)
         self.llm_calls += 1
@@ -151,24 +185,32 @@ class LiveAgent:
             if abs(value - live[p]) >= 0.05 * step:
                 planned[p] = round(value, 3)
 
-        # What-if with the twin: tomorrow's score with the plan versus doing nothing
-        rejected, score_nothing, score_plan = False, None, None
-        if planned:
-            score_nothing = env.predict({})["growth_score"]
-            score_plan = env.predict(planned)["growth_score"]
-            rejected = score_plan < score_nothing - REJECT_MARGIN
+        # What-if with the twin: tomorrow's score with each action alone, then with what is left of
+        # the plan, versus doing nothing. Checking actions one by one keeps a harmful action from
+        # riding along with a helpful one.
+        applied, rejected, score_nothing, score_plan = dict(planned), [], None, None
+        if planned and self.twin_check:
+            score_nothing = probes[0] if probes else env.predict({})["growth_score"]
+            if len(planned) > 1:
+                for p, v in planned.items():
+                    if env.predict({p: v})["growth_score"] < score_nothing - REJECT_MARGIN:
+                        rejected.append(p)
+                        del applied[p]
+            if applied:
+                score_plan = env.predict(applied)["growth_score"]
+                if score_plan < score_nothing - REJECT_MARGIN:
+                    rejected += list(applied)
+                    applied = {}
 
         if reasoning:
             env.sim.log(reasoning)
         if rejected:
             self.rejected += 1
-            env.sim.log(f"Rejected by twin: {planned} (tomorrow {score_plan:.2f} vs {score_nothing:.2f})")
-            self._say(f"Day {status['day']}: rejected by twin {planned}")
-            applied = {}
-        else:
-            applied = planned
-            for p, v in applied.items():
-                env.adjust(p, v, reason=reasoning, source="agent")
+            blocked = {p: planned[p] for p in rejected}
+            env.sim.log(f"Rejected by twin: {blocked} (tomorrow below {score_nothing:.2f})")
+            self._say(f"Day {status['day']}: rejected by twin {blocked}")
+        for p, v in applied.items():
+            env.adjust(p, v, reason=reasoning, source="agent")
 
         if self.verbose and reasoning:
             print(f"[agent day {status['day']}] {reasoning}")
@@ -183,7 +225,7 @@ class LiveAgent:
             "prompt_tokens": info["prompt_tokens"] or prompt_tokens,
             "completion_tokens": info["completion_tokens"],
             "reasoning": reasoning, "actions_proposed": [{"parameter": p, "value": v} for p, v in proposed],
-            "actions_applied": applied, "rejected_by_twin": rejected,
+            "actions_applied": applied, "rejected_by_twin": bool(rejected), "rejected_actions": rejected,
             "predicted_score_nothing": score_nothing, "predicted_score_plan": score_plan,
             "latency_s": info["latency_s"], "error": error,
         })
@@ -258,8 +300,8 @@ class LiveAgent:
 
     def _report(self, summary):
         decisions = [f"day {h['day']}: score {h['score_before']:.2f}, "
-                     + (f"plan {h['planned']} blocked by the twin check" if h["rejected"] else
-                        (", ".join(f"{p}->{v}" for p, v in h["applied"].items()) or "wait"))
+                     + (", ".join(f"{p}->{v}" for p, v in h["applied"].items()) or "wait")
+                     + (f" ({', '.join(h['rejected'])} blocked by the twin check)" if h["rejected"] else "")
                      for h in self.history]
         user = json.dumps({"result": {k: summary[k] for k in (
             "scenario", "outcome", "final_day", "final_progress_percent", "days_with_score_below_0_5",

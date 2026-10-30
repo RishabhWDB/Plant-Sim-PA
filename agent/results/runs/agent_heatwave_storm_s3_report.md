@@ -1,27 +1,20 @@
 Here's a short season report:
 
-**Season Report**
+**Season Report:**
 
-I managed a farm for one season in a digital twin, and the outcome was matured with a final progress percentage of 98.18. The season was marked by a heatwave and a storm, which had a significant impact on the farm's growth.
+I managed a farm for one season in a digital twin, and the outcome was matured with a final progress percentage of 98.12% on day 68. The mean growth score was 0.8781, and I made 13 interventions throughout the season.
 
-**Key Decisions**
+**Key Decisions:**
 
-I made 11 interventions throughout the season, with some notable decisions including:
+I made several key decisions based on the digital twin's feedback, including:
 
-* Waiting on days 0, 30, and 45 to assess the situation before taking action.
-* Adjusting soil moisture and humidity levels on days 39, 42, 45, and 69 to optimize growth.
-* Blocking some of my plans due to the twin's checks, which helped me refine my decisions.
+* Waiting on days 0, 3, 6, 9, 12, 15, 18, 21, 24, 27, 30, 33, 36, 39, 42, 45, 48, 51, 54, 57, 60, 63, and 66 when the growth score was high (above 0.9) and the soil moisture, sunlight hours, or humidity were blocked by the twin check.
+* Adjusting irrigation on day 24 when the soil moisture was 58.219 and humidity was 54.59.
+* Adjusting humidity on day 27 when the score was 0.68 and humidity was 59.987.
+* Adjusting soil moisture on day 33 when the score was 0.91 and soil moisture was 61.437.
 
-**What Went Right**
+**Lessons Learned:**
 
-The farm's growth score was consistently above 0.8, indicating healthy growth. The mean growth score was 0.8497, and the final day's progress was 98.18%.
+I would do several things differently next season:
 
-**What Went Wrong**
-
-The heatwave and storm had a negative impact on the farm's growth, and I had to intervene frequently to mitigate the effects. I would have liked to have more control over the weather conditions.
-
-**What I Would Do Differently Next Season**
-
-* Develop a more robust plan for dealing with extreme weather conditions, such as heatwaves and storms.
-* Invest in more advanced irrigation systems to optimize soil moisture levels.
-* Continuously monitor and adjust my decisions based on the twin's checks to ensure optimal
+* I would like to have more control over the interventions, as some of them were blocked by

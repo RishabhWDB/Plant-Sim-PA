@@ -16,6 +16,7 @@ from pathlib import Path
 
 from baselines import NoInterventionPolicy, RuleBasedPolicy
 from farm_env import FarmEnvironment
+from live_agent import VARIANTS
 from scenarios import SCENARIOS, jittered
 from sim_backends import LocalSim, UnitySim
 
@@ -27,13 +28,15 @@ def make_policy(name, agent_options=None, verbose=True):
         return NoInterventionPolicy()
     if name == "rule":
         return RuleBasedPolicy()
-    if name == "agent":
+    if name in VARIANTS:
         from live_agent import LiveAgent
         from llm_client import FakeLLM, LLMClient
         o = agent_options or {}
-        llm = FakeLLM() if o.get("dry_run") else LLMClient(model=o.get("model"))
+        v = dict(VARIANTS[name])
+        model = v.pop("model", None) or o.get("model")
+        llm = FakeLLM() if o.get("dry_run") else LLMClient(model=model)
         return LiveAgent(llm, days_per_tick=o.get("days_per_tick", 3),
-                         tick_seconds=o.get("tick_seconds", 12.0), verbose=verbose)
+                         tick_seconds=o.get("tick_seconds", 12.0), verbose=verbose, **v)
     raise ValueError(name)
 
 
@@ -62,7 +65,7 @@ def run_season(policy_name, scenario_name, backend="unity", url="http://localhos
 
     env.reset()
     try:
-        if policy_name == "agent" and backend == "unity":
+        if policy_name in VARIANTS and backend == "unity":
             summary = policy.run_realtime(env)
         else:
             summary = policy.run(env)
@@ -85,7 +88,7 @@ def run_season(policy_name, scenario_name, backend="unity", url="http://localhos
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument("--policy", choices=["none", "rule", "agent"], default="agent")
+    p.add_argument("--policy", choices=["none", "rule", *VARIANTS], default="agent")
     p.add_argument("--scenario", choices=list(SCENARIOS), default="drought")
     p.add_argument("--backend", choices=["unity", "local"], default="unity")
     p.add_argument("--url", default="http://localhost:8765")

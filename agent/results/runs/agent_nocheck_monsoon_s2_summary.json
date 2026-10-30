@@ -1,0 +1,37 @@
+{
+  "scenario": "monsoon",
+  "outcome": "matured",
+  "final_day": 112,
+  "final_progress_percent": 98.04,
+  "matured": true,
+  "days_to_maturity": 112,
+  "days_with_score_below_0_5": 22,
+  "mean_growth_score": 0.7038,
+  "interventions": 57,
+  "interventions_by_parameter": {
+    "soil_moisture": 32,
+    "humidity": 21,
+    "sunlight_hours": 3,
+    "ph": 1
+  },
+  "irrigation_mm": 297.0,
+  "drainage_mm": 541.0,
+  "what_if_queries": 342,
+  "llm_calls": 39,
+  "input_tokens": 34787,
+  "output_tokens": 3292,
+  "llm_errors": 0,
+  "rejected_by_twin": 0,
+  "mean_latency_s": 2.806,
+  "model": "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo",
+  "policy": "agent_nocheck",
+  "seed": 2,
+  "events": [
+    {
+      "name": "monsoon",
+      "start_day": 14,
+      "end_day": 46
+    }
+  ],
+  "log_file": "agent_nocheck_monsoon_s2.jsonl"
+}

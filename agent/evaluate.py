@@ -4,10 +4,14 @@ Batch evaluation on the local replica of the v4 twin: every policy on every scen
   python agent/evaluate.py --seeds 5                                # baselines only (free, about 2 minutes)
   python agent/evaluate.py --seeds 5 --include-agent                # adds the live agent (DeepInfra credits)
   python agent/evaluate.py --seeds 5 --include-agent --dry-run      # fake LLM, written to agent/runs/dry_run_eval
+  python agent/evaluate.py --seeds 5 --policies agent_noprobe agent_nocheck --no-report   # ablation runs only
+  python agent/evaluate.py --report-only                            # tables and charts from every run on disk
 
 Writes to agent/results/: results.csv, one progress chart per scenario, the metrics in
 METRICS.md / metrics_*.csv, and RESULTS_TABLE.md with the rows used in the paper and slides.
-Per-run logs, summaries and agent season reports go to agent/results/runs/.
+Per-run logs, summaries and agent season reports go to agent/results/runs/. The CSV, tables and
+charts cover every run summary in that folder, so policies can be run separately (and in parallel,
+one process per scenario with --no-report) and reported together.
 """
 
 import argparse
@@ -15,6 +19,7 @@ import csv
 import json
 from pathlib import Path
 
+from live_agent import VARIANTS
 from run import run_season
 from scenarios import SCENARIOS
 
@@ -69,8 +74,13 @@ def plot(results, out_dir, runs_dir):
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument("--include-agent", action="store_true")
+    p.add_argument("--include-agent", action="store_true", help="add the live agent to the baselines")
+    p.add_argument("--policies", nargs="*", choices=["none", "rule", *VARIANTS],
+                   help="run exactly these policies instead")
+    p.add_argument("--no-report", action="store_true", help="only run seasons, skip the CSV, tables and charts")
+    p.add_argument("--report-only", action="store_true", help="skip running, rebuild outputs from the runs folder")
     p.add_argument("--seeds", type=int, default=1, help="plant-variation seeds per run")
+    p.add_argument("--first-seed", type=int, default=0, help="run seeds first-seed .. first-seed + seeds - 1")
     p.add_argument("--scenarios", nargs="*", default=list(SCENARIOS))
     p.add_argument("--max-days", type=int, default=120)
     p.add_argument("--dry-run", action="store_true", help="agent uses a fake LLM; results go to agent/runs")
@@ -78,7 +88,9 @@ def main():
     p.add_argument("--model", default=None, help="DeepInfra model (default DEEPINFRA_MODEL)")
     args = p.parse_args()
 
-    policies = ["none", "rule"] + (["agent"] if args.include_agent else [])
+    policies = args.policies or ["none", "rule"] + (["agent"] if args.include_agent else [])
+    if args.report_only:
+        policies = []
     # Dry runs never overwrite the committed results
     out_dir = RESULTS_DIR.parent / "runs" / "dry_run_eval" if args.dry_run else RESULTS_DIR
     agent_options = {"dry_run": args.dry_run, "days_per_tick": args.days_per_tick, "model": args.model}
@@ -88,13 +100,16 @@ def main():
     results = []
     for scenario in args.scenarios:
         for policy in policies:
-            for seed in range(args.seeds):
+            for seed in range(args.first_seed, args.first_seed + args.seeds):
                 print(f"Running {policy} on {scenario} (seed {seed})...")
                 s = run_season(policy, scenario, backend="local", seed=seed,
                                max_days=args.max_days, log_dir=str(runs_dir), agent_options=agent_options,
                                verbose=False, timestamped=False)
                 results.append(s)
+    if args.no_report:
+        return
 
+    results = [json.loads(f.read_text()) for f in sorted(runs_dir.glob("*_summary.json"))]
     with open(out_dir / "results.csv", "w", newline="") as f:
         w = csv.DictWriter(f, fieldnames=FIELDS, extrasaction="ignore")
         w.writeheader()

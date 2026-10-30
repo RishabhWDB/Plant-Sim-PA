@@ -1,0 +1,37 @@
+{
+  "scenario": "drought",
+  "outcome": "matured",
+  "final_day": 64,
+  "final_progress_percent": 98.3,
+  "matured": true,
+  "days_to_maturity": 64,
+  "days_with_score_below_0_5": 0,
+  "mean_growth_score": 0.9054,
+  "interventions": 12,
+  "interventions_by_parameter": {
+    "humidity": 4,
+    "soil_moisture": 5,
+    "sunlight_hours": 1,
+    "ph": 2
+  },
+  "irrigation_mm": 135.0,
+  "drainage_mm": 0.0,
+  "what_if_queries": 224,
+  "llm_calls": 23,
+  "input_tokens": 22607,
+  "output_tokens": 1882,
+  "llm_errors": 0,
+  "rejected_by_twin": 7,
+  "mean_latency_s": 1.487,
+  "model": "mistralai/Mistral-Small-24B-Instruct-2501",
+  "policy": "agent_mistral",
+  "seed": 1,
+  "events": [
+    {
+      "name": "drought",
+      "start_day": 17,
+      "end_day": 41
+    }
+  ],
+  "log_file": "agent_mistral_drought_s1.jsonl"
+}

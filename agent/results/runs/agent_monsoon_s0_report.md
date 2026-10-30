@@ -1,15 +1,20 @@
 **Season Report**
 
-The farm experienced a monsoon scenario, resulting in a matured outcome by the final day (94). The mean growth score was 0.7651, with 19 days where the score was below 0.5. A total of 21 interventions were made, with irrigation amounting to 27 mm.
+**Scenario:** Monsoon
+**Outcome:** Matured
+**Final Day:** 92
+**Final Progress Percent:** 98.38
 
-**Key Decisions**
+**Summary:** The season was marked by frequent interventions due to the twin's blocking of certain decisions. Despite this, the farm matured successfully.
 
-* Initially, plans were blocked by the twin check due to high scores, indicating that the farm was already performing well.
-* Interventions were made to adjust soil moisture and humidity levels, with some plans being blocked by the twin check.
-* Waiting was a common strategy, with 4 instances of waiting to allow the farm to recover or continue growing.
+**Key Decisions:**
 
-**What I Would Do Differently Next Season**
+* Day 12: Increased soil moisture to 50.0 due to low score (0.97)
+* Day 21: Adjusted soil moisture to 78.243 and sunlight hours to 7.0 to improve growth
+* Day 48: Reduced soil moisture to 55.14 due to high score (0.92)
 
-* More proactive interventions would be made to address the farm's performance, rather than relying on waiting.
-* A more nuanced approach to adjusting soil moisture and humidity levels would be taken, taking into account the farm's specific needs and the twin check's recommendations.
-* A review of the twin check's blocking decisions would be conducted to understand the underlying reasons and adjust the farm's strategy accordingly.
+**What I Would Do Differently Next Season:**
+
+* Reduce the number of interventions by carefully planning decisions and monitoring the twin's blocking of certain actions.
+* Improve the farm's resilience to the twin's blocking by developing contingency plans for when certain decisions are restricted.
+* Consider implementing more proactive measures to mitigate the impact of the twin's blocking on the farm's growth and progress.

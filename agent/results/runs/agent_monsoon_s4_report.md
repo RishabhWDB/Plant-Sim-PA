@@ -2,23 +2,19 @@
 
 **Scenario:** Monsoon
 **Outcome:** Matured
-**Days:** 97
-**Progress:** 98.28%
+**Duration:** 104 days
+**Final Progress:** 98.19%
+**Days with Score below 0.5:** 31
+**Mean Growth Score:** 0.7397
+**Interventions:** 17
+**Irrigation (mm):** 27.0
 
 **Key Decisions:**
 
-* Initially, I tried to plan for optimal humidity and soil moisture levels, but the digital twin blocked these plans due to its own checks.
-* I then focused on maintaining soil moisture levels, which helped the crop grow.
-* As the season progressed, I adjusted my plans to account for the monsoon scenario, which led to increased humidity levels.
+* Waited for optimal conditions on days 0, 3, 6, 9, 12, 15, 18, 21, 24, 27, 30, 33, 36, 39, 42, 45, 48, 60, 63, 66, 69, 72, 75, 78, 84, 87, 90, 93, 96, and 99, as soil moisture and other factors were blocked by the digital twin.
+* Made targeted interventions on days 21, 24, 27, 30, 33, 36, 39, 42, 45, 48, 51, 54, 57, 81, and 102 to optimize growth.
 
-**What Went Well:**
+**What I would do differently next season:**
 
-* The crop matured successfully, despite the initial challenges with the digital twin's checks.
-* I was able to adapt to the changing conditions and make adjustments to the soil moisture levels.
-
-**What I Would Do Differently Next Season:**
-
-* I would like to understand the digital twin's checks better and find ways to work around them or incorporate them into my planning.
-* I would also like to explore ways to improve the crop's growth rate and yield, possibly by adjusting the soil moisture levels or introducing new variables.
-
-**Overall:** The season was a success, but I learned the importance of understanding and working with the digital twin's checks. Next season, I aim to refine my planning and make adjustments to improve the crop's growth and yield.
+* Review the digital twin's blocking mechanisms to better understand the underlying factors affecting growth.
+* Develop a more proactive strategy to mitigate the effects of blocked factors, such as adjusting irrigation schedules or using alternative growth

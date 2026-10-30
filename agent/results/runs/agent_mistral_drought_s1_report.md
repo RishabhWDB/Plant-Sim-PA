@@ -1,0 +1,3 @@
+The season was marked by a drought scenario, but the farm managed to mature 98.3% of the crops by day 64. The mean growth score was 0.9054, indicating generally good conditions. Key decisions included waiting for optimal conditions and adjusting humidity and soil moisture levels. The farm was irrigated 135mm over the season.
+
+Next season, I would focus on earlier interventions to maintain optimal soil moisture and humidity levels, especially during the blocked days. I would also prioritize adjusting sunlight hours when possible, to maximize growth. Additionally, I would monitor and adjust pH levels more frequently to ensure they remain within the optimal range.

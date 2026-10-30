@@ -1,28 +1,15 @@
-Season Report:
+**Season Report**
 
-**Scenario:** Drought
-**Outcome:** Matured
-**Final Day:** 81
-**Final Progress Percent:** 98.41%
+The season was a drought, which significantly impacted crop growth. Despite the challenging conditions, the farm's progress was satisfactory, with a final progress percentage of 98.51% on the 69th day.
 
-**Key Decisions:**
+**Key Decisions**
 
-* Initially, I tried to maintain optimal soil moisture and humidity levels, but the digital twin kept blocking my plans due to its internal checks.
-* As the season progressed, I had to adapt to the drought conditions and focus on preserving water.
-* I made some manual adjustments to humidity and sunlight hours to compensate for the lack of rainfall.
-
-**What Went Well:**
-
-* Despite the drought, the crop matured to 98.41% by the end of the season.
-* I was able to irrigate the crop 88.9 mm, which helped to mitigate the effects of the drought.
-
-**What Went Wrong:**
-
-* The digital twin's internal checks often blocked my plans, which led to some manual adjustments and compromises.
-* The drought conditions were more severe than I anticipated, and I had to be more proactive in managing water resources.
-
-**What I Would Do Differently Next Season:**
-
-* I would like to have more control over the digital twin's internal checks and be able to override them when necessary.
-* I would also like to have more accurate weather forecasting and be able to plan for drought conditions from the start.
-* Finally, I would like to explore more efficient irrigation methods to reduce water waste and optimize crop growth.
+1. Initially, I chose to wait on days 0, 3, 6, 9, 12, 15, 18, 21, 24, 27, 30, 33, 36, 39, 42, 45, 48, 51, 54, 57, 60, 63, and 66, as the twin's checks on sunlight hours, soil moisture, humidity, and pH were blocked.
+2. On day 15, I intervened by adjusting sunlight hours to 7.0, as soil moisture was blocked by the twin check.
+3. On day 24, I adjusted humidity to 40.0.
+4. On day 27, I adjusted soil moisture to 44.21.
+5. On day 30, I adjusted humidity to 41.39 and soil moisture to 54.976.
+6. On day 33, I adjusted soil moisture to 65.84 and humidity to 49.586.
+7. On day 36, I adjusted humidity to 57.78.
+8. On day 45, I adjusted soil moisture to 63.036.
+9. On day 51,

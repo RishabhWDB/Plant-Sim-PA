@@ -12,13 +12,17 @@ One LLM call per tick, no tool loop, no conversation history:
 ```
 every tick
   1. read the state          GET /state (Unity) or LocalSim.state()
-  2. ask the LLM             compact prompt (about 500 tokens): state, forecast and 90% band,
-                             limiting factor, last 3 decisions and their score change
+  2. probe the twin          /predict for each control moved alone to either end of its reach
+                             this tick, plus no change (9 what-if queries, no LLM call)
+  3. ask the LLM             compact prompt (about 650 tokens): state, forecast and 90% band,
+                             limiting factor, the probe scores, last 3 decisions and their
+                             score change
                              reply: {"reasoning": ..., "actions": [{"parameter", "value"}]}, at most 2
-  3. check with the twin     /predict with the plan versus doing nothing; reject the plan if
-                             tomorrow's score would drop by more than 0.02 (no extra LLM call)
-  4. apply                   clip to actuator limits, POST /environment, POST /log (AgentLogPanel)
-  5. log                     one JSON line per tick: state, tokens, actions, rejection, latency
+  4. check with the twin     /predict with each action alone, then with what is left of the plan,
+                             versus doing nothing; drop anything that would lower tomorrow's
+                             score by more than 0.02 (no extra LLM call)
+  5. apply                   clip to actuator limits, POST /environment, POST /log (AgentLogPanel)
+  6. log                     one JSON line per tick: state, tokens, actions, rejection, latency
 at season end                one more call writes a short season report
 ```
 
@@ -26,8 +30,14 @@ The rules of the game (FarmEnvironment):
 - only soil_moisture, ph, sunlight_hours, humidity are controllable
 - each action is limited: soil moisture 20, pH 0.5, sunlight 3 h, humidity 15
 - temperature and rainfall are weather: scenarios change them, the agent cannot
-- the agent is **not told the crop's optimal ranges**; it gets the name of the limiting factor
-  and the twin's feedback, and must rely on agronomy knowledge for the values
+- the agent is **not told the crop's optimal ranges**; it gets the name of the limiting factor,
+  the probe scores (tomorrow's score at the lowest, current and highest level each
+  control can reach this tick) and the twin's feedback
+
+The probes replace the `simulate_change` tool of the earlier Claude tool-use agent
+(`agentic-farm-manager` branch): the model sees what the twin expects from each control without
+a second round trip. Without them, Llama 3.1 8B often moved pH back and forth between the same
+two values on acid_soil, because the limiting factor alone does not say which way to go.
 
 Any LLM failure (timeout, HTTP error, invalid JSON) means "no action" for that tick and is
 logged; the loop never stops because of the model.
@@ -61,7 +71,8 @@ The baselines step Unity with `/advance`, which the server keeps for them.
 Assets/Scripts/Core/SimulationServer.cs   HTTP API inside Unity (optional component)
 Assets/Scripts/UI/AgentLogPanel.cs        on-screen agent log
 agent/
-  live_agent.py      the periodic agent (prompt, twin check, apply, log, season report)
+  live_agent.py      the periodic agent (probes, prompt, twin check, apply, log, season report)
+                     and VARIANTS, the policy names used for the ablation
   llm_client.py      DeepInfra client (OpenAI-compatible) and the dry-run fake
   farm_env.py        rules of the game, actuator limits, weather, logging
   scenarios.py       calm, drought, monsoon, acid_soil, heatwave_storm
@@ -123,6 +134,15 @@ Evaluation:
 ./run_agent.sh agent/evaluate.py --seeds 5                   # baselines, about 2 minutes
 ./run_agent.sh agent/evaluate.py --seeds 5 --include-agent   # adds the live agent (DeepInfra)
 ```
+
+Ablation: `--policies` picks any of `none`, `rule`, `agent`, `agent_noprobe` (no probes),
+`agent_nocheck` (no twin check) and `agent_mistral` (Mistral Small 24B). Seasons can run in
+parallel, one process each, and be reported together; set `OMP_NUM_THREADS=1`, or
+scikit-learn's threads oversubscribe the CPU:
+```bash
+OMP_NUM_THREADS=1 ./run_agent.sh agent/evaluate.py --policies agent_noprobe --scenarios drought --seeds 1 --first-seed 2 --no-report
+./run_agent.sh agent/evaluate.py --report-only                # tables and charts from every run on disk
+```
 Outputs go to `agent/results/`: `RESULTS_TABLE.md` (success rate, mean health, reaction days,
 actions per season, what-if per action), `METRICS.md`, CSVs, charts, and per-run logs, summaries
 and season reports in `results/runs/`.
@@ -140,9 +160,10 @@ cd agent && ../ml/.venv/bin/python -m unittest discover tests
 ## Cost
 
 Default model `meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo` at $0.02 / $0.04 per million input /
-output tokens. A local season makes about 20 to 30 calls of about 500 to 650 prompt tokens and
-up to about 100 output tokens, around 15,000 to 25,000 tokens in all: well under $0.001 per
-season, and under $0.02 for the full 25-season evaluation.
+output tokens. A local season makes about 25 calls of about 900 prompt tokens (system prompt
+included) and up to about 100 output tokens: about $0.00055 per season, and about $0.014 for the
+full 25-season evaluation. Mistral Small 24B costs about $0.0013 per season. The whole ablation
+(four agent variants, 100 seasons) cost $0.077.
 
 ## Scenarios
 

@@ -1,0 +1,36 @@
+{
+  "scenario": "acid_soil",
+  "outcome": "matured",
+  "final_day": 65,
+  "final_progress_percent": 98.5,
+  "matured": true,
+  "days_to_maturity": 65,
+  "days_with_score_below_0_5": 0,
+  "mean_growth_score": 0.9036,
+  "interventions": 21,
+  "interventions_by_parameter": {
+    "ph": 11,
+    "soil_moisture": 9,
+    "sunlight_hours": 1
+  },
+  "irrigation_mm": 180.2,
+  "drainage_mm": 27.0,
+  "what_if_queries": 230,
+  "llm_calls": 23,
+  "input_tokens": 22538,
+  "output_tokens": 2017,
+  "llm_errors": 0,
+  "rejected_by_twin": 2,
+  "mean_latency_s": 4.012,
+  "model": "mistralai/Mistral-Small-24B-Instruct-2501",
+  "policy": "agent_mistral",
+  "seed": 4,
+  "events": [
+    {
+      "name": "acid_rain",
+      "start_day": 33,
+      "end_day": 34
+    }
+  ],
+  "log_file": "agent_mistral_acid_soil_s4.jsonl"
+}

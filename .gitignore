@@ -23,3 +23,13 @@ agent/runs/
 
 # Local settings with secrets (template: .env.example)
 .env
+
+# Mono crash dumps
+mono_crash.*.json
+
+# Compiled paper (build with tectonic or pdflatex)
+paper/agent/main.pdf
+paper/agent/*.aux
+paper/agent/*.bbl
+paper/agent/*.blg
+paper/agent/*.log

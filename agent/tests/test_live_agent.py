@@ -20,6 +20,12 @@ from scenarios import SCENARIOS  # noqa: E402
 from sim_backends import GrowthScorer, LocalSim  # noqa: E402
 
 SCORER = GrowthScorer()
+ENVS = []    # closed after the tests, so their run logs are not left open
+
+
+def tearDownModule():
+    for env in ENVS:
+        env.close()
 
 
 class ScriptedLLM:
@@ -46,11 +52,13 @@ def make_env(scenario="drought", days=None):
     env = FarmEnvironment(LocalSim(scorer=SCORER), SCENARIOS[scenario], log_dir=tmp, run_name="t",
                           verbose=False, max_days=days or 120)
     env.reset()
+    ENVS.append(env)
     return env
 
 
 def ticks(env):
-    return [json.loads(l) for l in open(env.log_path) if '"type": "tick"' in l]
+    with open(env.log_path) as f:
+        return [json.loads(l) for l in f if '"type": "tick"' in l]
 
 
 class LiveAgentDecisions(unittest.TestCase):
@@ -108,6 +116,60 @@ class LiveAgentDecisions(unittest.TestCase):
         for hidden in ("40", "70", "6.0", "7.0", "optimal range"):
             self.assertNotIn(hidden, SYSTEM_PROMPT)
 
+    def test_probes_show_the_twin_score_at_both_ends_of_each_control(self):
+        env = make_env("acid_soil")
+        llm = ScriptedLLM([])
+        LiveAgent(llm, verbose=False).decide(env, env.status())
+        msg = json.loads(llm.prompts[-1])
+        keep = env.predict({})["growth_score"]
+        for p, c in msg["controls"].items():
+            table = c["twin_tomorrow"]
+            low, high = c["can_set_to"]
+            self.assertAlmostEqual(table[f"{low:g}"], env.predict({p: low})["growth_score"], places=3)
+            self.assertAlmostEqual(table[f"{c['now']:g}"], keep, places=3)
+            self.assertAlmostEqual(table[f"{high:g}"], env.predict({p: high})["growth_score"], places=3)
+        # acid soil: raising pH helps, lowering it hurts
+        ph = msg["controls"]["ph"]["twin_tomorrow"]
+        self.assertEqual(list(ph), ["3.9", "4.4", "4.9"])
+        self.assertGreater(ph["4.9"], ph["4.4"])
+        self.assertLess(ph["3.9"], ph["4.4"])
+
+    def test_harmful_action_cannot_ride_along_with_a_helpful_one(self):
+        env = make_env("acid_soil")
+        agent = LiveAgent(ScriptedLLM([{"reasoning": "irrigate, and lower pH", "actions": [
+            {"parameter": "soil_moisture", "value": 50}, {"parameter": "ph", "value": 3.9}]}]), verbose=False)
+        agent.decide(env, env.status())
+        t = ticks(env)[-1]
+        self.assertEqual(set(t["actions_applied"]), {"soil_moisture"})
+        self.assertEqual(t["rejected_actions"], ["ph"])
+        self.assertTrue(t["rejected_by_twin"])
+        self.assertEqual(env.status()["environment"]["ph"], 4.4)
+
+    def test_variants_switch_probes_and_twin_check_off(self):
+        env = make_env()
+        llm = ScriptedLLM([])
+        LiveAgent(llm, verbose=False, probes=False).decide(env, env.status())
+        msg = json.loads(llm.prompts[-1])
+        self.assertNotIn("twin_tomorrow", msg["controls"]["ph"])
+
+        env = make_env()
+        agent = LiveAgent(ScriptedLLM([{"reasoning": "dry it out",
+                                        "actions": [{"parameter": "soil_moisture", "value": 5}]}]),
+                          verbose=False, twin_check=False)
+        agent.decide(env, env.status())
+        t = ticks(env)[-1]
+        self.assertFalse(t["rejected_by_twin"])
+        self.assertIn("soil_moisture", t["actions_applied"])
+
+    def test_every_variant_builds_a_policy(self):
+        from live_agent import VARIANTS
+        from run import make_policy
+        for name in VARIANTS:
+            agent = make_policy(name, {"dry_run": True}, verbose=False)
+            self.assertIsInstance(agent, LiveAgent)
+        self.assertFalse(make_policy("agent_noprobe", {"dry_run": True}).probes)
+        self.assertFalse(make_policy("agent_nocheck", {"dry_run": True}).twin_check)
+
     def test_realtime_season_applies_weather_and_finishes(self):
         class ClockedSim(LocalSim):
             """A LocalSim whose clock runs on its own: one day passes per state read."""
@@ -130,6 +192,7 @@ class LiveAgentDecisions(unittest.TestCase):
         env = FarmEnvironment(ClockedSim(scorer=SCORER), SCENARIOS["drought"], log_dir=tmp,
                               run_name="rt", verbose=False)
         env.reset()
+        self.addCleanup(env.close)
         agent = LiveAgent(llm_client.FakeLLM(), tick_seconds=0.0, verbose=False)
         summary = agent.run_realtime(env, poll_seconds=0.0)
         self.assertIn(summary["outcome"], ("matured", "dead", "season_ended"))

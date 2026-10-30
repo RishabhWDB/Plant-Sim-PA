@@ -1,0 +1,36 @@
+{
+  "scenario": "monsoon",
+  "outcome": "matured",
+  "final_day": 98,
+  "final_progress_percent": 98.2,
+  "matured": true,
+  "days_to_maturity": 98,
+  "days_with_score_below_0_5": 19,
+  "mean_growth_score": 0.7487,
+  "interventions": 17,
+  "interventions_by_parameter": {
+    "soil_moisture": 14,
+    "humidity": 2,
+    "sunlight_hours": 1
+  },
+  "irrigation_mm": 54.0,
+  "drainage_mm": 324.0,
+  "what_if_queries": 323,
+  "llm_calls": 34,
+  "input_tokens": 32966,
+  "output_tokens": 2474,
+  "llm_errors": 0,
+  "rejected_by_twin": 3,
+  "mean_latency_s": 1.9,
+  "model": "mistralai/Mistral-Small-24B-Instruct-2501",
+  "policy": "agent_mistral",
+  "seed": 1,
+  "events": [
+    {
+      "name": "monsoon",
+      "start_day": 18,
+      "end_day": 49
+    }
+  ],
+  "log_file": "agent_mistral_monsoon_s1.jsonl"
+}
