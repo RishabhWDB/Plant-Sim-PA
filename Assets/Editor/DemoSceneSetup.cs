@@ -49,7 +49,11 @@ public static class DemoSceneSetup
 
         var log = Object.FindFirstObjectByType<AgentLogPanel>(FindObjectsInactive.Include);
         if (log == null) log = CreateLogPanel();
-        if (log != null) server.agentLogPanel = log;
+        if (log != null)
+        {
+            ApplyLogLayout(log);
+            server.agentLogPanel = log;
+        }
 
         EditorUtility.SetDirty(server);
         EditorSceneManager.MarkSceneDirty(scene);
@@ -70,13 +74,6 @@ public static class DemoSceneSetup
         var panel = new GameObject("AgentLogPanel", typeof(RectTransform), typeof(Image), typeof(AgentLogPanel));
         Undo.RegisterCreatedObjectUndo(panel, "Add agent log panel");
         panel.transform.SetParent(canvas.transform, false);
-        var rect = (RectTransform)panel.transform;
-        // Bottom left: clear of the sliders (top left), the status text (top right)
-        // and the time controls (bottom centre)
-        rect.anchorMin = new Vector2(0.005f, 0.02f);
-        rect.anchorMax = new Vector2(0.37f, 0.26f);
-        rect.offsetMin = Vector2.zero;
-        rect.offsetMax = Vector2.zero;
         panel.GetComponent<Image>().color = new Color(0.05f, 0.08f, 0.06f, 0.6f);
 
         var textObj = new GameObject("LogText", typeof(RectTransform), typeof(TextMeshProUGUI));
@@ -87,10 +84,6 @@ public static class DemoSceneSetup
         textRect.offsetMin = new Vector2(14, 10);
         textRect.offsetMax = new Vector2(-14, -10);
         var text = textObj.GetComponent<TextMeshProUGUI>();
-        text.fontSize = 20;
-        text.enableAutoSizing = true;
-        text.fontSizeMin = 12;
-        text.fontSizeMax = 20;
         text.color = Color.white;
         text.alignment = TextAlignmentOptions.BottomLeft;
         text.textWrappingMode = TextWrappingModes.Normal;
@@ -100,8 +93,33 @@ public static class DemoSceneSetup
 
         var log = panel.GetComponent<AgentLogPanel>();
         log.logText = text;
-        log.maxLines = 6;
         return log;
+    }
+
+    /// <summary>Size and text settings, applied on every run so they can be tuned here.</summary>
+    static void ApplyLogLayout(AgentLogPanel log)
+    {
+        // Bottom left, up to 40% of the screen height: clear of the sliders (top left),
+        // the status text (top right) and the time controls (bottom centre)
+        var rect = (RectTransform)log.transform;
+        Undo.RecordObject(rect, "Agent log layout");
+        rect.anchorMin = new Vector2(0.005f, 0.02f);
+        rect.anchorMax = new Vector2(0.38f, 0.40f);
+        rect.offsetMin = Vector2.zero;
+        rect.offsetMax = Vector2.zero;
+
+        Undo.RecordObject(log, "Agent log layout");
+        log.maxLines = 4;   // the last two decisions (reasoning + twin verdict), readable on a projector
+        if (log.logText != null)
+        {
+            Undo.RecordObject(log.logText, "Agent log layout");
+            log.logText.enableAutoSizing = true;
+            log.logText.fontSizeMin = 16;
+            log.logText.fontSizeMax = 24;
+            EditorUtility.SetDirty(log.logText);
+        }
+        EditorUtility.SetDirty(rect);
+        EditorUtility.SetDirty(log);
     }
 
     /// <summary>Opens SampleScene and enters Play mode (for a scripted rehearsal of the demo).</summary>
