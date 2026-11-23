@@ -64,7 +64,7 @@ progress. forecast gives days to maturity or to crop death if conditions persist
 The state lists each control's current value ("now") and the range you can set it to this time ("can_set_to", the current value plus or minus the per-action limit). When present, "twin_tomorrow" maps levels you could set that control to (lowest reachable, current, highest reachable) to the growth_score the twin predicts for tomorrow if only that control changes: pick the level with the highest score. "value" in an action is the NEW LEVEL you want, not a change: to raise humidity from 30 to 45, send {"parameter": "humidity", "value": 45}. Every action is checked with the twin first, and an action the twin predicts would lower tomorrow's score is not applied (rejected_by_twin in recent_decisions lists them).
 
 Reply with JSON only:
-{"reasoning": "at most 2 sentences", "actions": [{"parameter": "<control>", "value": <new level>}]}
+{"reasoning": "at most 2 sentences", "advice": "1 or 2 short remedies or precautions a real farmer should take now (e.g. mulch, check drainage, scout for pests, protect from heat)", "actions": [{"parameter": "<control>", "value": <new level>}]}
 Use at most 2 actions. An empty actions list means wait."""
 
 
@@ -165,12 +165,13 @@ class LiveAgent:
         self.latencies.append(info["latency_s"])
 
         error = info["error"]
-        reasoning, proposed = "", []
+        reasoning, advice, proposed = "", "", []
         if reply is None:
             self.llm_errors += 1
             self._say(f"Day {status['day']}: LLM call failed, no action ({error})")
         else:
             reasoning = str(reply.get("reasoning", ""))[:300]
+            advice = str(reply.get("advice", ""))[:200]
             proposed, problems = self._validate(reply.get("actions", []))
             if problems:
                 error = "; ".join(problems)
@@ -204,6 +205,8 @@ class LiveAgent:
 
         if reasoning:
             env.sim.log(reasoning)
+        if advice:
+            env.sim.log(f"Remedy: {advice}")
         if rejected:
             self.rejected += 1
             blocked = {p: planned[p] for p in rejected}
@@ -214,6 +217,8 @@ class LiveAgent:
 
         if self.verbose and reasoning:
             print(f"[agent day {status['day']}] {reasoning}")
+        if self.verbose and advice:
+            print(f"[agent day {status['day']}] Remedy: {advice}")
         self.history.append({"day": status["day"], "planned": planned, "applied": applied, "rejected": rejected,
                              "score_before": status["growth_score"], "score_after": None})
         env.record({
@@ -224,7 +229,7 @@ class LiveAgent:
                       "forecast": status["forecast"], "environment": status["environment"]},
             "prompt_tokens": info["prompt_tokens"] or prompt_tokens,
             "completion_tokens": info["completion_tokens"],
-            "reasoning": reasoning, "actions_proposed": [{"parameter": p, "value": v} for p, v in proposed],
+            "reasoning": reasoning, "advice": advice, "actions_proposed": [{"parameter": p, "value": v} for p, v in proposed],
             "actions_applied": applied, "rejected_by_twin": bool(rejected), "rejected_actions": rejected,
             "predicted_score_nothing": score_nothing, "predicted_score_plan": score_plan,
             "latency_s": info["latency_s"], "error": error,

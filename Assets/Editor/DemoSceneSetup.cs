@@ -122,10 +122,18 @@ public static class DemoSceneSetup
         EditorUtility.SetDirty(log);
     }
 
-    /// <summary>Opens SampleScene and enters Play mode (for a scripted rehearsal of the demo).</summary>
+    /// <summary>Opens SampleScene, maximizes the Game view and enters Play mode (used by demo.sh).
+    /// Shift+Space toggles the maximized view back.</summary>
     public static void Play()
     {
         EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
+        var gameViewType = typeof(EditorWindow).Assembly.GetType("UnityEditor.GameView");
+        if (gameViewType != null)
+        {
+            var gameView = EditorWindow.GetWindow(gameViewType);
+            gameView.Focus();
+            gameView.maximized = true;
+        }
         EditorApplication.EnterPlaymode();
     }
 }

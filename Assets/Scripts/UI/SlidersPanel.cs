@@ -47,6 +47,28 @@ public class SlidersPanel : MonoBehaviour
         humiditySlider.value    = 62f;
         rainfallSlider.value    = 3f;
 
+        // The panel's layout group gives sliders no height of their own, so they collapsed to
+        // zero and only the labels showed. Give each slider a fixed height so it can be dragged.
+        foreach (var s in new[] { pHSlider, moistureSlider, sunlightSlider, temperatureSlider, humiditySlider, rainfallSlider })
+        {
+            var le = s.GetComponent<LayoutElement>();
+            if (le == null) le = s.gameObject.AddComponent<LayoutElement>();
+            le.minHeight = 22f;
+            le.preferredHeight = 22f;
+            var rt = (RectTransform)s.transform;
+            if (rt.sizeDelta.y < 1f) rt.sizeDelta = new Vector2(rt.sizeDelta.x, 22f);
+        }
+
+        // One-line labels that shrink to fit, so they do not wrap onto the sliders
+        foreach (var l in new[] { pHLabel, moistureLabel, sunlightLabel, temperatureLabel, humidityLabel, rainfallLabel })
+        {
+            float size = l.fontSize;
+            l.textWrappingMode = TextWrappingModes.NoWrap;
+            l.enableAutoSizing = true;
+            l.fontSizeMin = 10f;
+            l.fontSizeMax = size * 0.85f;
+        }
+
         // Hook up listeners
         pHSlider.onValueChanged.AddListener(v          => OnSliderChanged());
         moistureSlider.onValueChanged.AddListener(v    => OnSliderChanged());

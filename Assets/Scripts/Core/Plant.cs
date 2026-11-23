@@ -10,7 +10,9 @@ public class Plant : MonoBehaviour
     public float individualOffset = 0f;
 
     [Header("Transition Settings")]
-    public float transitionSpeed = 2f;
+    public float transitionSpeed = 1f;       // model cross-fade lasts 1 / speed seconds
+    public float minSecondsPerStage = 6f;    // a plant keeps each model at least this long
+    public float switchStagger = 2.5f;       // random delay so the field does not swap models in one frame
 
     private int   currentStage    = 0;
     private float lastScore       = -1f;
@@ -20,6 +22,9 @@ public class Plant : MonoBehaviour
     private bool  isTransitioning = false;
     private int   nextStage       = 0;
     private float transitionAlpha = 0f;
+    private int   pendingStage    = -1;
+    private float switchAt        = 0f;
+    private float lastSwitchTime  = -100f;
 
     private MaterialPropertyBlock propBlock;
     private Renderer[]            renderers;
@@ -48,6 +53,14 @@ public class Plant : MonoBehaviour
         {
             currentScale = Mathf.Lerp(currentScale, targetScale, Time.deltaTime * transitionSpeed);
             ApplyScale(currentScale);
+        }
+
+        // Start a pending model switch once its staggered delay and the minimum stage time have passed
+        if (pendingStage >= 0 && !isTransitioning && Time.time >= switchAt
+            && Time.time - lastSwitchTime >= minSecondsPerStage)
+        {
+            if (pendingStage != currentStage) TriggerStageTransition(pendingStage);
+            pendingStage = -1;
         }
 
         // Handle smooth transition between stage models
@@ -98,8 +111,11 @@ public class Plant : MonoBehaviour
             stageProgress
         );
 
-        if (newStage != currentStage && !isTransitioning)
-            TriggerStageTransition(newStage);
+        if (newStage != currentStage && newStage != pendingStage)
+        {
+            if (pendingStage < 0) switchAt = Time.time + Random.Range(0f, switchStagger);
+            pendingStage = newStage;
+        }
 
         if (Mathf.Abs(adjustedScore - lastScore) > 0.01f)
         {
@@ -112,6 +128,7 @@ public class Plant : MonoBehaviour
     {
         nextStage       = newStageIndex;
         isTransitioning = true;
+        lastSwitchTime  = Time.time;
         transitionAlpha = 0f;
 
         if (stageModels[nextStage] != null)

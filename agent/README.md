@@ -34,7 +34,7 @@ The rules of the game (FarmEnvironment):
   the probe scores (tomorrow's score at the lowest, current and highest level each
   control can reach this tick) and the twin's feedback
 
-The probes replace the `simulate_change` tool of the earlier Claude tool-use agent
+The probes replace the `simulate_change` tool of the earlier tool-use agent
 (`agentic-farm-manager` branch): the model sees what the twin expects from each control without
 a second round trip. Without them, Llama 3.1 8B often moved pH back and forth between the same
 two values on acid_soil, because the limiting factor alone does not say which way to go.

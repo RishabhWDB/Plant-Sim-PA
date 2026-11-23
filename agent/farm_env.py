@@ -144,10 +144,10 @@ class FarmEnvironment:
         any weather news."""
         status = self.sim.state()
         self.last_status = status
-        self.env = dict(status["environment"])
+        prev, self.env = self.env, dict(status["environment"])
         if status["day"] > self.trajectory[-1]["day"]:
             self._record_day(status, [])
-        news = []
+        news = self._manual_changes(prev, status["day"])
         while self._weather_through < status["day"] + 1:
             self._weather_through += 1
             news += self._apply_weather(self._weather_through)
@@ -185,6 +185,23 @@ class FarmEnvironment:
 
     def _set(self, name, value):
         return dict(self.sim.set_parameter(name, value))
+
+    # Changes made by hand on the sliders (soil moisture is left out: it moves every day)
+    MANUAL = {"ph": ("pH", 0.05, ""), "sunlight_hours": ("sunlight", 0.2, " h/day"),
+              "temperature": ("temperature", 0.5, " C"), "humidity": ("humidity", 0.5, "%"),
+              "rainfall": ("rainfall", 0.5, " mm/day")}
+
+    def _manual_changes(self, prev, day):
+        news = []
+        for k, (label, eps, unit) in self.MANUAL.items():
+            if prev and k in prev and abs(float(self.env[k]) - float(prev[k])) > eps:
+                news.append(f"Day {day}: the farmer changed {label} by hand, "
+                            f"{float(prev[k]):.1f} -> {float(self.env[k]):.1f}{unit}.")
+        for n in news:
+            self._write({"type": "manual_change", "day": day, "message": n})
+            self._say(n)
+            self.sim.log(n)
+        return news
 
     def _apply_weather(self, day):
         news = []

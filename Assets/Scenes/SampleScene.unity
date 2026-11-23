@@ -2339,7 +2339,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e246d3d80f6d040859b8db81145f2c40, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SimulationClock
-  secondsPerDay: 2
+  secondsPerDay: 4.5
   timeScale: 2
   paused: 0
   currentDay: 0
